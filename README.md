@@ -36,7 +36,7 @@ Get-XMPFeed
 Retrieves data for a specific SiriusXM channel.
 
 ```powershell
-Get-XMPStationByChannel -Channel "alt-nation"
+Get-XMPChannel -Channel "altnation"
 ```
 
 ---
@@ -45,7 +45,7 @@ Get-XMPStationByChannel -Channel "alt-nation"
 Extracts all `links` attributes from a JSON response. Optionally filter by site name.
 
 ```powershell
-$response = Get-XMPStationByChannel -Channel "alt-nation"
+$response = Get-XMPChannel -Channel "altnation"
 
 # Get all links
 Get-XMPLinksFromResponse -JsonResponse $response
@@ -55,6 +55,6 @@ Get-XMPLinksFromResponse -JsonResponse $response -Filter "spotify"
 ```
 
 ## Author
-**Dan MacCormac <dmaccormac@gmai.com>**
+**Dan MacCormac <dmaccormac@gmail.com>**
 
 ---
