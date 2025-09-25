@@ -26,7 +26,7 @@ Get-XMStation
 ---
 
 ### `Get-XMPlaylist`
-Retrieves recently played tracks for freed or channel.
+Retrieves recently played tracks for feed or channel.
 
 Get recently played tracks for all channels (feed).
 ```powershell
