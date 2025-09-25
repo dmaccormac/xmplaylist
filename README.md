@@ -2,56 +2,56 @@
 # XmPlaylist
 
 ## Overview
-**XmPlaylist** is a PowerShell module that provides functions to interact with the [xmplaylist.com API](https://xmplaylist.com/api/documentation). It allows users to retrieve SiriusXM station data, feed information, and extract useful data from API responses.
+
+**XmPlaylist** is a PowerShell module that provides functions to interact with the [xmplaylist.com API](https://xmplaylist.com/api/documentation). It allows users to retrieve useful data from API responses such as SiriusXM station data and recently played tracks.
 
 ## Installation
 
 1. Download and extract the module folder.
 2. Open PowerShell and import the module:
    ```powershell
-   Import-Module "Path\To\XmPlaylistModule\XmPlaylistModule.psm1"
+   Import-Module "Path\To\XmPlaylist\XmPlaylist.psm1"
    ```
+
 
 ## Functions
 
-### `Get-XMPStations`
+### `Get-XMStation`
 Retrieves a list of all available SiriusXM stations.
 
 ```powershell
-Get-XMPStations
+Get-XMStation
 ```
 
 ---
 
-### `Get-XMPFeed`
-Get the recently played tracks for all channels.
+### `Get-XMPlaylist`
+Retrieves recently played tracks for freed or channel.
 
+Get recently played tracks for all channels (feed).
 ```powershell
-Get-XMPFeed
+Get-XMPlaylist 
+```
+
+Get recently played tracks for siriusxmhits1 channel.
+```powershell
+Get-XMPlaylist -Channel "siriusxmhits1"
 ```
 
 ---
 
-### `Get-XMPChannel`
-Retrieves data for a specific SiriusXM channel.
+### Format-XMPlaylistTable
 
+Formats the playlist JSON response into a table with Artist, Title, Channel, and Link.
+
+Get recently played tracks for all channels and show default links (youtube).
 ```powershell
-Get-XMPChannel -Channel "altnation"
+Get-XMPlaylist | Format-XMPlaylistTable
 ```
 
----
-
-### `Get-XMPLinksFromResponse`
-Extracts all `links` attributes from a JSON response. Optionally filter by site name.
-
+Get recently played for siriusxmhits1 and show spotify links.
 ```powershell
-$response = Get-XMPChannel -Channel "altnation"
-
-# Get all links
-Get-XMPLinksFromResponse -JsonResponse $response
-
-# Get only Spotify links
-Get-XMPLinksFromResponse -JsonResponse $response -Filter "spotify"
+Get-XMPlaylist siriusxmhits1 | Format-XMPlaylistTable -Site spotify
 ```
 
 ## Author
