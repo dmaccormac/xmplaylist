@@ -3,7 +3,8 @@
 
 ## Overview
 
-**XmPlaylist** is a PowerShell module that provides functions to interact with the [xmplaylist.com API](https://xmplaylist.com/api/documentation). It allows users to retrieve useful data from API responses such as SiriusXM station data and recently played tracks.
+**XmPlaylist** is a PowerShell module that provides functions to interact with the [xmplaylist.com API](https://xmplaylist.com/api/documentation). 
+It allows users to retrieve useful data from API responses such as SiriusXM station data and recently played tracks.
 
 ## Installation
 
@@ -19,40 +20,47 @@
 ### `Get-XMStation`
 Retrieves a list of all available SiriusXM stations.
 
+Example #1
 ```powershell
 Get-XMStation
 ```
+Retrieves JSON object containing all station information.
+
+Example #2
+```powershell
+$(Get-XMStation).results | Select-Object -Property number, name, shortDescription
+```
+View station list including number, name and description properties.
 
 ---
 
 ### `Get-XMPlaylist`
-Retrieves recently played tracks for feed or channel.
+Get recently played tracks for SiriusXM channel.
 
-Get recently played tracks for all channels (feed).
+Example #1
 ```powershell
 Get-XMPlaylist 
 ```
+Retrieves recently played tracks for all channels.
 
-Get recently played tracks for siriusxmhits1 channel.
+Example #2 
 ```powershell
 Get-XMPlaylist -Channel "siriusxmhits1"
 ```
+Get recently played tracks for siriusxmhits1 channel.
 
 ---
 
-### Format-XMPlaylistTable
+### Format-XMPlaylistItem
 
-Formats the playlist JSON response into a table with Artist, Title, Channel, and Link.
+Formats a playlist item into a custom object with artist, title, link and timestamp.
 
-Get recently played tracks for all channels and show default links (youtube).
 ```powershell
-Get-XMPlaylist | Format-XMPlaylistTable
+$item = $(Get-XMPlaylist).results | Select-Object -First 1
+$processed = Format-XMPlaylistItem -Item $item
+$processed | Format-Table
 ```
-
-Get recently played for siriusxmhits1 and show spotify links.
-```powershell
-Get-XMPlaylist siriusxmhits1 | Format-XMPlaylistTable -Site spotify
-```
+Gets the most recently played track, formats it a PowerShell object and output it in table format.
 
 ## Author
 **Dan MacCormac <dmaccormac@gmail.com>**

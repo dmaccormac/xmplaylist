@@ -1,13 +1,13 @@
 <#
     Module: XmPlaylist
     Description: PowerShell module for accessing xmplaylist.com API
-    Date: 2025-09-24
+    Date: 2025-10-03
     Author: Dan MacCormac <dmaccormac@gmail.com>
     Website: https://github.com/dmaccormac/XmPlaylist
     API Reference: https://xmplaylist.com/api/documentation
 #>
 
-function Get-XMStation {
+function Get-Station {
     <#
     .SYNOPSIS
     Retrieves a list of all SiriusXM stations.
@@ -16,48 +16,35 @@ function Get-XMStation {
     This function calls the xmplaylist.com API endpoint `/api/station` to fetch a list of all available SiriusXM stations.
 
     .EXAMPLE
-    Get-XMPStation
+    Get-XMStation
     
     .EXAMPLE
-    $(Get-XMPStation).results | Select-Object -Property number, deeplink, name, shortDescription
+    $(Get-XMStation).results | Select-Object -Property number, name, shortDescription
 
     .NOTES
     https://xmplaylist.com/api/station
 
     #>
 
-
     $url = "https://xmplaylist.com/api/station"
     $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-    
+    return $response
 
-    $output = @()
-
-    $response.results | ForEach-Object {
-        $station = [PSCustomObject]@{
-            Number            = $_.number
-            Name              = $_.name
-            Deeplink          = $_.deeplink
-            ShortDescription  = $_.shortdescription
-
-        }
-        $output += $station
-}
-
-    return $output
 }
 
 
-function Get-XMPlaylist{
+function Get-Playlist{
     <#
     .SYNOPSIS
-    Gets recently played tracks for a specified SiriusXM channel or the general feed.
+    Get recently played tracks for SiriusXM channel.
 
     .DESCRIPTION
-    This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch metadata and playlist information for the specified SiriusXM channel. If no channel is specified, it retrieves a general feed.
+    This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch playlist information. 
+    If no channel is specified, it retrieves recently played tracks for all channels.
 
     .PARAMETER Channel
-    The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1"). Use Get-XMStation to retrieve a list of available channels.
+    The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1"). 
+    Use Get-XMStation to retrieve a list of available channels.
 
     .EXAMPLE
     Get-XMPlaylist  # Retrieves the general feed (recently played, all channels)
@@ -95,104 +82,51 @@ function Get-XMPlaylist{
 }
 
 
-
-function Get-XMLinks{
+function Format-PlaylistItem {
     <#
     .SYNOPSIS
-    Extracts 'links' properties from a JSON response, with optional filtering by site name.
+    Formats a playlist item into a custom object with artist, title, link and timestamp.
 
     .DESCRIPTION
-    This function takes a JSON object (returned from xmplaylist.com API) and extracts all 'links' properties. You can optionally filter the results by site name.
+    This function takes a playlist item object (as returned by Get-XMPlaylist) and extracts key information such as artist, title, link, and timestamp.
+    It returns a custom PowerShell object with these properties for easier consumption.
 
-    .PARAMETER JsonResponse
-    The JSON object returned from an API call.
+    .PARAMETER Item
+    The playlist item object to process.
 
     .PARAMETER Site
-    Optional. The site name to filter links by (e.g., "youtube", "spotify"). If not provided, all links are returned.
+    The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
 
     .EXAMPLE
-    Get-XMPlaylist siriusxmhits1 | Get-XMLinks
+    $item = $(Get-XMPlaylist).results | Select-Object -First 1
+    $processed = Format-XMPlaylistItem -Item $item
+    $processed | Format-Table
 
     #>
 
-    [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [object]$JsonResponse,
+        [object]$Item,
 
         [Parameter(Mandatory = $false)]
-        [string]$Site
+        [string]$Site = 'youtube'  # Default site for link extraction (e.g., 'youtube', 'spotify')
     )
 
-    $links = @()
 
-        if ($JsonResponse.PSObject.Properties['links']) {
-            foreach ($link in $JsonResponse.links) {
-                if ($Site) {
-                    if ($link.site -eq $Site) {
-                        $links += $link
-                    }
-                } else {
-                    $links += $link
-                }
-            }
-        }
-    
+    $artist = if ($Item.track.artists) { $Item.track.artists -join ', ' } else { 'Unknown' }
+    $title = if ($Item.track.title) { $Item.track.title } else { 'Unknown' }
+    $time = if ($Item.timestamp) { ([datetime]::Parse($Item.timestamp)).ToLocalTime() } else { 'Unknown' }
 
-    return $links
+    $link = if ($Item.links) { ($Item.links | Where-Object { $_.site -eq $Site } | Select-Object -First 1).url } else { $null }
+
+    return [PSCustomObject]@{
+        Artist = $artist
+        Title  = $title
+        Link   = $link
+        Timestamp = $time
+        
+    }
 }
 
-function Format-XMPlaylistTable {
-    <#
-    .SYNOPSIS
-    Formats the playlist JSON response into a table with Artist, Title, Channel, and Link.
 
-    .DESCRIPTION
-    This function takes a JSON response from the xmplaylist.com API and formats it into a more
-    human-readable table with columns for Artist, Title, Channel, and Link.
-
-    .PARAMETER JsonResponse
-    The JSON object returned from an API call.
-
-    .PARAMETER Site
-    Optional. The site name to filter links by (e.g., "youtube", "spotify"). Default is "youtube".
-
-    .EXAMPLE
-    Get-XMPlaylist | Format-XMPlaylistTable
-
-    .EXAMPLE
-    Get-XMPlaylist siriusxmhits1 | Format-XMPlaylistTable -Site spotify
-
-    #>
-
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [object]$JsonResponse,
-
-        [Parameter(Mandatory = $false)]
-        [string]$Site = "youtube"
-        )
-
-        $output = @()
-
-        $JsonResponse.results | ForEach-Object {
-            $Channel = if ($_.channelid) { $_.channelid } else { $JsonResponse.channel.deeplink.ToLower() }
-
-            $object = [PSCustomObject]@{
-                Artist    = $_.track.artists -join ', '
-                Title     = $_.track.title
-                Channel = $Channel
-                Link      = Get-XMLinks $_ -Site $Site | Select-Object -ExpandProperty url
-            }
-
-            $output += $object
-        }
-
-
-
-    return $output
-
-}
-
-Export-ModuleMember -Function Get-XMStation, Get-XMPlaylist, Format-XMPlaylistTable
+Export-ModuleMember -Function Get-Station, Get-Playlist, Format-PlaylistItem
