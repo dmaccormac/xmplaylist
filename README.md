@@ -1,5 +1,5 @@
 
-# XmPlaylist
+# XmPlaylist [experimental]
 
 ## Overview
 
@@ -40,19 +40,12 @@ Get-XMPlaylist -Channel "siriusxmhits1"
 
 ---
 
-### Format-XMPlaylistTable
+### Start-XMPlaylist
+Plays a playlist of tracks using yt-dlp and ffplay. 
 
-Formats the playlist JSON response into a table with Artist, Title, Channel, and Link.
+### Show-XMPlayer
+This function retrieves the list of available SiriusXM stations, displays them in a grid view for user selection, and then starts playing the selected station's playlist (via Start-XMPlaylist fxn).
 
-Get recently played tracks for all channels and show default links (youtube).
-```powershell
-Get-XMPlaylist | Format-XMPlaylistTable
-```
-
-Get recently played for siriusxmhits1 and show spotify links.
-```powershell
-Get-XMPlaylist siriusxmhits1 | Format-XMPlaylistTable -Site spotify
-```
 
 ## Author
 **Dan MacCormac <dmaccormac@gmail.com>**

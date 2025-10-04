@@ -7,7 +7,7 @@
     API Reference: https://xmplaylist.com/api/documentation
 #>
 
-function Get-XMStation {
+function Get-Station {
     <#
     .SYNOPSIS
     Retrieves a list of all SiriusXM stations.
@@ -16,10 +16,8 @@ function Get-XMStation {
     This function calls the xmplaylist.com API endpoint `/api/station` to fetch a list of all available SiriusXM stations.
 
     .EXAMPLE
-    Get-XMPStation
+    Get-XMStation
     
-    .EXAMPLE
-    $(Get-XMPStation).results | Select-Object -Property number, deeplink, name, shortDescription
 
     .NOTES
     https://xmplaylist.com/api/station
@@ -47,8 +45,7 @@ function Get-XMStation {
     return $output
 }
 
-
-function Get-XMPlaylist{
+function Get-Playlist{
     <#
     .SYNOPSIS
     Gets recently played tracks for a specified SiriusXM channel or the general feed.
@@ -75,7 +72,7 @@ function Get-XMPlaylist{
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true)]
         [string]$Channel
         )
 
@@ -88,15 +85,15 @@ function Get-XMPlaylist{
 
     try {
         $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-        return $response
+        #return $response
     } catch {
         Write-Error "Failed to retrieve data for channel '$Channel'. $_"
     }
+
+    Format-PlaylistTable($response)
 }
 
-
-
-function Get-XMLinks{
+function Get-Links{
     <#
     .SYNOPSIS
     Extracts 'links' properties from a JSON response, with optional filtering by site name.
@@ -142,7 +139,7 @@ function Get-XMLinks{
     return $links
 }
 
-function Format-XMPlaylistTable {
+function Format-PlaylistTable {
     <#
     .SYNOPSIS
     Formats the playlist JSON response into a table with Artist, Title, Channel, and Link.
@@ -157,11 +154,6 @@ function Format-XMPlaylistTable {
     .PARAMETER Site
     Optional. The site name to filter links by (e.g., "youtube", "spotify"). Default is "youtube".
 
-    .EXAMPLE
-    Get-XMPlaylist | Format-XMPlaylistTable
-
-    .EXAMPLE
-    Get-XMPlaylist siriusxmhits1 | Format-XMPlaylistTable -Site spotify
 
     #>
 
@@ -183,7 +175,7 @@ function Format-XMPlaylistTable {
                 Artist    = $_.track.artists -join ', '
                 Title     = $_.track.title
                 Channel = $Channel
-                Link      = Get-XMLinks $_ -Site $Site | Select-Object -ExpandProperty url
+                Link      = Get-Links $_ -Site $Site | Select-Object -ExpandProperty url
             }
 
             $output += $object
@@ -195,4 +187,81 @@ function Format-XMPlaylistTable {
 
 }
 
-Export-ModuleMember -Function Get-XMStation, Get-XMPlaylist, Format-XMPlaylistTable
+function Start-Playlist {
+
+    <#
+    .SYNOPSIS
+    Plays a playlist of tracks using yt-dlp and ffplay.
+    .DESCRIPTION
+    This function takes a playlist object (with Artist, Title, Channel, and Link properties) as input and plays it using the specified downloader.
+    .PARAMETER Playlist
+    The playlist object to play. This should be a custom object with properties: Artist, Title, Channel, and Link.
+    .PARAMETER DownloaderExe
+    The youtube downloader executable to use (default is "yt-dlp.exe").
+    .PARAMETER DownloaderArgs
+    Additional arguments to pass to the downloader (default is "-f bestaudio -o -").
+    .EXAMPLE
+    Get-XMPlaylist siriusxmhits1 | Start-XMPlaylist
+    This example retrieves the playlist for the "siriusxmhits1" channel and starts playing it.
+    #>
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [PSCustomObject]$Playlist,
+
+        [Parameter(Mandatory = $false)]
+        [string]$DownloaderExe="yt-dlp.exe",
+
+        [Parameter(Mandatory = $false)]
+        [string]$DownloaderArgs = "-f bestaudio -o -"
+
+
+         )
+
+
+    begin {        
+
+        Write-Verbose "Starting playlist playback..."
+
+        #if verbose switch is set, do not redirect output
+        $redirect = if ($PSBoundParameters['Verbose'])  {''} else {'2>NUL'}
+
+        if (-not (Get-Command $DownloaderExe -ErrorAction SilentlyContinue)) {
+            Write-Error "$DownloaderExe not found. Please ensure it is installed and available in the system PATH."
+            return
+        }
+    }
+
+    process {   
+
+        Write-Output "[xmplaylist] Playing: $($Playlist.Artist) - $($Playlist.Title) @ $($Playlist.Channel)"  
+        $(cmd /c "$DownloaderExe $DownloaderArgs `"$($Playlist.Link)`" $redirect | ffplay -nodisp -autoexit -i - $redirect")
+        #cmd /c "$DownloaderExe $DownloaderArgs `"$($Playlist.Link)`" $redirect | ffplay -loglevel quiet -nodisp -autoexit -i - 1>NUL 2>NUL"
+        }
+
+    end {
+        Write-Verbose "Finished processing playlist."
+    }
+
+}
+
+function Show-Player {
+    <#
+    .SYNOPSIS
+    Displays list of available stations and allows user to select one to play.
+
+    .DESCRIPTION
+    This function retrieves the list of available SiriusXM stations, displays them in a grid view for user selection, and then starts playing the selected station's playlist.
+
+    .EXAMPLE
+    Show-XMPlaylist
+
+    #>
+
+    $stationList = Get-Station
+    $selectedStation = $stationList | Out-GridView -Title "Available Stations" -PassThru
+    $selectedStation.deeplink | Get-Playlist | Start-Playlist
+}
+
+Export-ModuleMember -Function Get-Station, Get-Playlist, Start-Playlist, Show-Player
