@@ -8,16 +8,25 @@ It allows users to retrieve useful data from API responses such as SiriusXM stat
 
 ## Installation
 
-1. Download and extract the module folder.
-2. Open PowerShell and import the module:
-   ```powershell
-   Import-Module "Path\To\XmPlaylist\XmPlaylist.psm1"
-   ```
+```powershell
+Invoke-WebRequest -Uri "https://github.com/dmaccormac/xmplaylist/archive/refs/heads/main.zip" -OutFile "$env:TEMP\XMPlaylist.zip"; Expand-Archive "$env:TEMP\XMPlaylist.zip" -DestinationPath "$env:USERPROFILE\Documents\WindowsPowerShell\Modules" -Force; Rename-Item "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\xmplaylist-main" "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Force; Get-ChildItem "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Recurse | Unblock-File
+```
 
+# Usage
 
-## Functions
+### Import the module
+```powershell
+Import-Module XMPlaylist
+```
 
-### `Get-XMStation`
+### Find commands
+```powershell
+Get-Command -Module XMPlaylist
+```
+
+### Functions
+
+#### Get-XMStation
 Retrieves a list of all available SiriusXM stations.
 
 Example #1
@@ -34,7 +43,7 @@ View station list including number, name and description properties.
 
 ---
 
-### `Get-XMPlaylist`
+#### Get-XMPlaylist
 Get recently played tracks for SiriusXM channel.
 
 Example #1
@@ -51,7 +60,7 @@ Get recently played tracks for siriusxmhits1 channel.
 
 ---
 
-### Format-XMPlaylistItem
+#### Format-XMPlaylistItem
 
 Formats a playlist item into a custom object with artist, title, link and timestamp.
 
