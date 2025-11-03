@@ -98,9 +98,25 @@ function Format-PlaylistItem {
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
 
     .EXAMPLE
-    $item = $(Get-XMPlaylist).results | Select-Object -First 1
-    $processed = Format-XMPlaylistItem -Item $item
-    $processed | Format-Table
+    $playlist = (Get-XMPlaylist siriusxmhits1).results | ForEach-Object { $_ | Format-XMPlaylistItem}
+
+    Create $playlist item containing recently played items for siriusxmhits1 station.
+
+    .EXAMPLE
+    $playlist | ForEach-Object { 
+        yt-dlp -t mp3 "$($_.Link)" -o "$($_.Artist) - $($_.Title).%(ext)s" 
+    }
+    
+    Download all playlist items in mp3 format using yt-dlp.
+
+    .EXAMPLE
+    $playlist | ForEach-Object {
+        Write-Host -ForegroundColor Yellow "[xmplaylist] $($_.Artist) - $($_.Title)"
+        cmd /c "yt-dlp.exe -f bestaudio `"$($_.Link)`" -o - | ffplay -nodisp -autoexit -i -"
+    }
+
+    Play all playlist items using yt-dlp and ffplay.
+    It is necessary use cmd here due to pipeline handling in PowerShell.
 
     #>
 
