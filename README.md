@@ -71,6 +71,17 @@ $processed | Format-Table
 ```
 Gets the most recently played track, formats it a PowerShell object and output it in table format.
 
+---
+
+### Invoke-XMItemPlayback
+This function takes a formatted playlist item (as returned by Format-XMPlaylistItem) and plays the track using yt-dlp to fetch the audio stream and ffplay to play it.
+
+```powershell
+    $(Get-XMPlaylist siriusxmhits1).results | ForEach-Object { Invoke-XMItemPlayback -Item (Format-XMPlaylistItem $_) }
+```
+
+---
+
 ## Author
 **Dan MacCormac <dmaccormac@gmail.com>**
 

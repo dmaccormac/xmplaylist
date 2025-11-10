@@ -145,4 +145,30 @@ function Format-PlaylistItem {
 }
 
 
-Export-ModuleMember -Function Get-Station, Get-Playlist, Format-PlaylistItem
+function Invoke-ItemPlayback {
+    <#
+    .SYNOPSIS
+    Plays a track using yt-dlp and ffplay.
+    .DESCRIPTION
+    This function takes a formatted playlist item (as returned by Format-XMPlaylistItem) and plays the track using yt-dlp to fetch the audio stream and ffplay to play it.
+    .PARAMETER Item
+    The formatted playlist item to play.
+    .PARAMETER Quiet
+    If specified, suppresses yt-dlp and ffplay output.
+    .EXAMPLE
+    $(Get-XMPlaylist siriusxmhits1).results | ForEach-Object { Invoke-XMItemPlayback -Item (Format-XMPlaylistItem $_) }
+#>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [object]$Item,
+        [Parameter(Mandatory = $false)]
+        [switch]$Quiet
+    )
+        $redirect = if ($Quiet) { "2> NUL" } else { "" }
+        Write-Host -ForegroundColor Yellow "[xmplaylist] $($Item.Artist) - $($Item.Title)"
+        cmd /c "yt-dlp.exe --no-progress -f bestaudio `"$($Item.Link)`" -o - $redirect | ffplay -nodisp -autoexit -i - $redirect" 
+
+}
+
+Export-ModuleMember -Function Get-Station, Get-Playlist, Format-PlaylistItem, Invoke-ItemPlayback
