@@ -119,7 +119,8 @@ function Format-PlaylistItem {
     It is necessary use cmd here due to pipeline handling in PowerShell.
 
     #>
-
+    
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [object]$Item,
@@ -145,30 +146,68 @@ function Format-PlaylistItem {
 }
 
 
-function Invoke-ItemPlayback {
+function Invoke-PlaylistItem {
     <#
     .SYNOPSIS
     Plays a track using yt-dlp and ffplay.
+
     .DESCRIPTION
-    This function takes a formatted playlist item (as returned by Format-XMPlaylistItem) and plays the track using yt-dlp to fetch the audio stream and ffplay to play it.
+    This function takes an XMPlaylistItem containing a YouTube link and plays the track using yt-dlp to fetch the audio and ffplay to play it.
+    
     .PARAMETER Item
     The formatted playlist item to play.
+   
+    .PARAMETER OutputFile
+    (Optional) If specified, saves the audio to the given file path instead of playing it. Default is "Artist - Title.mp3".
+    
     .PARAMETER Quiet
     If specified, suppresses yt-dlp and ffplay output.
+    
     .EXAMPLE
-    $(Get-XMPlaylist siriusxmhits1).results | ForEach-Object { Invoke-XMItemPlayback -Item (Format-XMPlaylistItem $_) }
+    $(Get-XMPlaylist siriusxmhits1).results | ForEach-Object { 
+        Invoke-XMPlaylistItem (Format-XMPlaylistItem $_) -Quiet 
+    }
+
+    Plays all recently played items for the siriusxmhits1 station. Suppresses output from yt-dlp and ffplay.
+    
+    
+    .EXAMPLE
+    $(Get-XMPlaylist siriusxmhits1).results | ForEach-Object { 
+        $formattedItem = Format-XMPlaylistItem $_
+        $outputFile = "$($formattedItem.Artist) - $($formattedItem.Title).mp3"
+        Invoke-XMPlaylistItem -Item $formattedItem -OutputFile $outputFile
+    }
+
+    Saves all recently played items for the siriusxmhits1 station to mp3 files.
+
 #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [object]$Item,
         [Parameter(Mandatory = $false)]
+        [string]$OutputFile,
+        [Parameter(Mandatory = $false)]
         [switch]$Quiet
     )
+
+        # Check if yt-dlp.exe and ffplay.exe are available
+        if (-not (Get-Command yt-dlp.exe -ErrorAction SilentlyContinue)) {
+            Write-Error "yt-dlp.exe not found in PATH. Please install yt-dlp and ensure it is in your system PATH."
+            return
+        }
+        if (-not (Get-Command ffplay.exe -ErrorAction SilentlyContinue)) {
+            Write-Error "ffplay.exe not found in PATH. Please install ffplay and ensure it is in your system PATH."
+            return
+        }
+
         $redirect = if ($Quiet) { "2> NUL" } else { "" }
         Write-Host -ForegroundColor Yellow "[xmplaylist] $($Item.Artist) - $($Item.Title)"
-        cmd /c "yt-dlp.exe --no-progress -f bestaudio `"$($Item.Link)`" -o - $redirect | ffplay -nodisp -autoexit -i - $redirect" 
-
+        if ($OutputFile) {
+            cmd /c "yt-dlp.exe -t mp3 `"$($Item.Link)`" -o `"$OutputFile`" $redirect"
+        } else {
+            cmd /c "yt-dlp.exe --no-progress -f bestaudio `"$($Item.Link)`" -o - $redirect | ffplay -nodisp -autoexit -i - $redirect"
+        }
 }
 
-Export-ModuleMember -Function Get-Station, Get-Playlist, Format-PlaylistItem, Invoke-ItemPlayback
+Export-ModuleMember -Function Get-Station, Get-Playlist, Format-PlaylistItem, Invoke-PlaylistItem
