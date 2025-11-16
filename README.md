@@ -78,7 +78,7 @@ This function takes an XMPlaylistItem containing a YouTube link and plays the tr
 
 Example #1:
 ```powershell
-    $(Get-XMPlaylist siriusxmhits1).results | ForEach-Object { Invoke-XMItemPlayback -Item (Format-XMPlaylistItem $_) }
+$(Get-XMPlaylist siriusxmhits1).results | ForEach-Object { Invoke-XMPlaylistItem -Item (Format-XMPlaylistItem $_) }
 ```
 Invokes all recently played items for the siriusxmhits1 station. 
 
