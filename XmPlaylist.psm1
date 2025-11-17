@@ -1,8 +1,7 @@
 <#
-    Module: XmPlaylist [experimental]
+    Module: XmPlaylist
     Description: PowerShell module for accessing xmplaylist.com API
-    Created: 2023-09-21
-    Last Updated: 2025-10-06
+    Date: 2025-10-03
     Author: Dan MacCormac <dmaccormac@gmail.com>
     Website: https://github.com/dmaccormac/XmPlaylist
     API Reference: https://xmplaylist.com/api/documentation
@@ -35,11 +34,8 @@ function Get-Station {
 
 }
 
-<<<<<<< Updated upstream
-=======
 
 
->>>>>>> Stashed changes
 function Get-Playlist{
     <#
     .SYNOPSIS
@@ -94,13 +90,9 @@ function Get-Playlist{
     }
 }
 
-<<<<<<< Updated upstream
-function Format-PlaylistItem {
-=======
 
 
 function Format-Playlist {
->>>>>>> Stashed changes
     <#
     .SYNOPSIS
     Formats a playlist into a custom object with artist, title, link and timestamp.
@@ -116,19 +108,14 @@ function Format-Playlist {
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
 
     .EXAMPLE
-<<<<<<< Updated upstream
-    $item = $(Get-XMPlaylist).results | Select-Object -First 1
-    $processed = Format-XMPlaylistItem -Item $item
-    $processed | Format-Table
-=======
     Get-Playlist siriusxmhits1 | Format-XMPlaylist
 
     Create $playlist item containing recently played items for siriusxmhits1 station.
 
->>>>>>> Stashed changes
 
     #>
-
+    
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [PSCustomObject]$Items,
@@ -164,39 +151,7 @@ function Format-Playlist {
     }
 }
 
-function Start-Playlist {
 
-<<<<<<< Updated upstream
-    <#
-    .SYNOPSIS
-    Plays a playlist of tracks using yt-dlp and ffplay.
-    .DESCRIPTION
-    This function takes a takes a SiriusXM channel name, retrieves its playlist using Get-XMPlaylist, formats each item with Format-XMPlaylistItem, and plays each track using Invoke-Track.
-    .PARAMETER Channel
-    The SiriusXM channel to play. This is used to fetch the playlist.
-#>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$Channel 
-    ) 
-
-
-        $Playlist = Get-XMPlaylist -Channel $Channel | Select-Object -ExpandProperty results | ForEach-Object { $_ | Format-XMPlaylistItem }
-        Write-Output $Playlist | Format-Table -AutoSize
-
-
-        foreach ($item in $Playlist) {
-            if (-not $item.Link) {
-                Write-Warning "No link available for $($item.Artist) - $($item.Title). Skipping."
-                continue
-            }
-            Invoke-Track $item
-        }
-
-}
-
-=======
 
 function Invoke-Playlist {
     <#
@@ -272,115 +227,19 @@ function Invoke-Playlist {
 }
 
 
->>>>>>> Stashed changes
 function Show-Player {
     <#
     .SYNOPSIS
     Displays list of available stations and allows user to select one to play.
 
     .DESCRIPTION
-<<<<<<< Updated upstream
-    This function retrieves the list of available SiriusXM stations, displays them in a grid view for user selection, and then starts playing the selected station's playlist.
-=======
     This function retrieves the list of available SiriusXM stations, displays them in a grid view for user selection, and plays the selected station's playlist.
->>>>>>> Stashed changes
 
     .EXAMPLE
     Show-XMPlaylist
 
     #>
 
-<<<<<<< Updated upstream
-    $stationList = $(Get-XMStation).results | Select-Object number, name, deeplink, shortdescription
-    $selectedStation = $stationList | Out-GridView -Title "Available Stations" -PassThru
-    Start-Playlist -Channel $selectedStation.deeplink
-}
-
-
-function Invoke-Track {
-    <#
-    .SYNOPSIS
-    Plays a track using yt-dlp and ffplay.
-    .DESCRIPTION
-    This function takes a formatted playlist item (as returned by Format-XMPlaylistItem) and plays the track using yt-dlp to fetch the audio stream and ffplay to play it.
-    .PARAMETER Item
-    The formatted playlist item to play.
-    .PARAMETER batch
-    If specified, the track will be played using the batch file (ytaudio.bat) rather than using Powershell inline method.
-    .EXAMPLE
-    $item = $(Get-XMPlaylist).results | Select-Object -First 1 | Format-XMPlaylistItem
-    Invoke-Track -Item $item
-    .EXAMPLE
-    $playlist = $(Get-XMPlaylist).results | ForEach-Object { $_ | Format-XMPlaylistItem }
-    $playlist | ForEach-Object { $_ | Invoke-Track -batch }
-    #>
-
-
-    param (
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [object]$Item,
-
-        [switch] $batch
-
-    )
-            if (-not $Item.Link) {
-                Write-Warning "No link available for $($Item.Artist) - $($Item.Title). Skipping."
-                return
-            }
-
-            if ($batch) {
-                # example -- $playlist | ForEach-Object {$_ | Invoke-XMTrack -batch}
-                Write-Output "[xmplaylist] (batch mode) Playing: $($Item.Artist) - $($Item.Title)"
-                # cd to script root
-                Set-Location -Path $PSScriptRoot
-                .\ytaudio.bat $Item.Link
-                return
-            }
-            
-
-            Write-Output "[xmplaylist] Playing: $($Item.Artist) - $($Item.Title)"
-            $DownloaderExe = "yt-dlp.exe"
-            $DownloaderArgs = "-f bestaudio -o -"
-
-            # Using Start-Process to handle the pipeline correctly
-            $processInfo = New-Object System.Diagnostics.ProcessStartInfo
-            $processInfo.FileName = $DownloaderExe
-            $processInfo.Arguments = "$DownloaderArgs `"$($Item.Link)`""
-            $processInfo.RedirectStandardOutput = $true
-            $processInfo.UseShellExecute = $false
-            $processInfo.CreateNoWindow = $true
-
-            $process = New-Object System.Diagnostics.Process
-            $process.StartInfo = $processInfo
-            $process.Start() | Out-Null
-
-            # Pipe the output to ffplay
-            $ffplayInfo = New-Object System.Diagnostics.ProcessStartInfo
-            $ffplayInfo.FileName = "ffplay"
-            #$ffplayInfo.Arguments = "-loglevel quiet -nodisp -autoexit -i -"
-            $ffplayInfo.Arguments = "-nodisp -autoexit -i -"
-            $ffplayInfo.RedirectStandardInput = $true
-            $ffplayInfo.UseShellExecute = $false
-            $ffplayInfo.CreateNoWindow = $true
-
-            $ffplayProcess = New-Object System.Diagnostics.Process
-            $ffplayProcess.StartInfo = $ffplayInfo
-            $ffplayProcess.Start() | Out-Null
-
-            # Redirect the output of yt-dlp to ffplay's input
-            $process.StandardOutput.BaseStream.CopyTo($ffplayProcess.StandardInput.BaseStream)
-            $process.StandardOutput.Close()
-            $ffplayProcess.StandardInput.Close()
-
-            # Wait for both processes to finish
-            $process.WaitForExit()
-            $ffplayProcess.WaitForExit()
-
-
-}
-
-Export-ModuleMember -Function Get-Station, Get-Playlist, Start-Playlist, Show-Player, Format-PlaylistItem, Invoke-Track
-=======
     $stationList = $(Get-XMStation) | Select-Object number, name, shortdescription, longdescription, deeplink
     $selectedStation = $stationList | Out-GridView -Title "Available Stations" -PassThru
     Get-Playlist -Channel $selectedStation.deeplink | Format-Playlist | Invoke-Playlist
@@ -388,4 +247,3 @@ Export-ModuleMember -Function Get-Station, Get-Playlist, Start-Playlist, Show-Pl
 
 
 Export-ModuleMember -Function Get-Station, Get-Playlist, Format-Playlist, Invoke-Playlist, Show-Player
->>>>>>> Stashed changes
