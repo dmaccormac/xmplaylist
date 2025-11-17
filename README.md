@@ -1,5 +1,5 @@
 
-# XmPlaylist
+# XmPlaylist [test branch]
 
 ## Overview
 
@@ -10,7 +10,7 @@ It allows users to retrieve useful data from API responses such as SiriusXM stat
 You can install the module by running the following command in PowerShell:
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/dmaccormac/xmplaylist/archive/refs/heads/main.zip" -OutFile "$env:TEMP\XMPlaylist.zip"; Expand-Archive "$env:TEMP\XMPlaylist.zip" -DestinationPath "$env:USERPROFILE\Documents\WindowsPowerShell\Modules" -Force; Rename-Item "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\xmplaylist-main" "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Force; Get-ChildItem "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Recurse | Unblock-File
+Invoke-WebRequest -Uri "https://github.com/dmaccormac/xmplaylist/archive/refs/heads/test.zip" -OutFile "$env:TEMP\XMPlaylist.zip"; Expand-Archive "$env:TEMP\XMPlaylist.zip" -DestinationPath "$env:USERPROFILE\Documents\WindowsPowerShell\Modules" -Force; Rename-Item "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\xmplaylist-test" "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Force; Get-ChildItem "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Recurse | Unblock-File
 ```
 
 ## Usage
@@ -30,9 +30,9 @@ Get-Command -Module XMPlaylist
 ```
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
-Function        Format-XMPlaylist                                  1.3.4      XmPlaylist
-Function        Get-XMPlaylist                                     1.3.4      XmPlaylist
-Function        Get-XMStation                                      1.3.4      XmPlaylist
-Function        Invoke-XMPlaylist                                  1.3.4      XmPlaylist
-Function        Show-XMPlayer                                      1.3.4      XmPlaylist
+Function        Format-XMPlaylist                                  1.2.2      XmPlaylist
+Function        Get-XMPlaylist                                     1.2.2      XmPlaylist
+Function        Get-XMStation                                      1.2.2      XmPlaylist
+Function        Invoke-XMPlaylist                                  1.2.2      XmPlaylist
+Function        Show-XMPlayer                                      1.2.2      XmPlaylist
 ```
