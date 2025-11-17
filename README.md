@@ -11,9 +11,14 @@
 Invoke-WebRequest -Uri "https://github.com/dmaccormac/xmplaylist/archive/refs/heads/experimental.zip" -OutFile "$env:TEMP\XMPlaylist.zip"; Expand-Archive "$env:TEMP\XMPlaylist.zip" -DestinationPath "$env:USERPROFILE\Documents\WindowsPowerShell\Modules" -Force; Rename-Item "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\xmplaylist-experimental" "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Force; Get-ChildItem "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Recurse | Unblock-File
    ```
 
+<<<<<<< Updated upstream
+=======
+## Usage
+>>>>>>> Stashed changes
 
 ## Functions
 
+<<<<<<< Updated upstream
 ### Get-XMStation
 Retrieves a list of all available SiriusXM stations.
 
@@ -78,3 +83,21 @@ This function retrieves the list of available SiriusXM stations, displays them i
 **Dan MacCormac <dmaccormac@gmail.com>**
 
 ---
+=======
+### Find commands
+```powershell
+Get-Command -Module XMPlaylist
+```
+
+## Functions
+
+```
+CommandType     Name                                               Version    Source
+-----------     ----                                               -------    ------
+Function        Format-XMPlaylist                                  1.3.4      XmPlaylist
+Function        Get-XMPlaylist                                     1.3.4      XmPlaylist
+Function        Get-XMStation                                      1.3.4      XmPlaylist
+Function        Invoke-XMPlaylist                                  1.3.4      XmPlaylist
+Function        Show-XMPlayer                                      1.3.4      XmPlaylist
+```
+>>>>>>> Stashed changes
