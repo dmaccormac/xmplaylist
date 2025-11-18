@@ -143,12 +143,12 @@ function Format-Playlist {
                 Timestamp = $time
             }
 
-            $formattedItems += $formattedItem
+            $formattedItems += $formattedItem            
         }
     }
     end {
         return $formattedItems
-    }
+     }
 }
 
 
@@ -193,14 +193,14 @@ function Invoke-Playlist {
 
     begin {
         # Check if yt-dlp.exe and ffplay.exe are available
-        if (-not (Get-Command yt-dlp.exe -ErrorAction SilentlyContinue)) {
-            Write-Error "yt-dlp.exe not found in PATH. Please install yt-dlp and ensure it is in your system PATH."
-            # Prompt to install it
-            $Choice = Read-Host "Would you like to install yt-dlp now? (Y/N)"
+        if (-not (Get-Command yt-dlp.exe -ErrorAction SilentlyContinue) -or -not (Get-Command ffplay.exe -ErrorAction SilentlyContinue)) {
+            # Prompt to install yt-dlp via winget
+            $Choice = Read-Host "This function requires additional dependencies. Would you like to install them now? (Y/N)"
             if ($Choice -eq 'Y' -or $Choice -eq 'y') {
-                Write-Host "Installing yt-dlp..."
-                winget install yt-dlp
-                Write-Host "yt-dlp installed. Please restart your PowerShell session."
+                Write-Host "Installing dependencies..."
+                winget install yt-dlp.yt-dlp --silent --accept-source-agreements --accept-package-agreements
+                if ($LASTEXITCODE -eq 0) { Write-Host "Installation successful. Please restart your PowerShell session." } 
+                else { Write-Error "Failed to install yt-dlp and ffmpeg. Please install them manually and ensure they are in your system PATH." }
             }
 
         }
@@ -211,7 +211,14 @@ function Invoke-Playlist {
     process {
         foreach ($Item in $Items) {
             
+            # Check if link is available
+            if (-not $Item.Link) {
+                Write-Warning "[xmplaylist] No link available for $($Item.Artist) - $($Item.Title). Skipping."
+                continue
+            }
+
             Write-Host -ForegroundColor Green "[xmplaylist] $($Item.Artist) - $($Item.Title)"
+
             if ($Download) {
                 $OutputFile = "$($Item.Artist) - $($Item.Title).mp3"
                 cmd /c "yt-dlp.exe -t mp3 `"$($Item.Link)`" -o `"$OutputFile`" $redirect"
@@ -243,7 +250,29 @@ function Show-Player {
     $stationList = $(Get-XMStation) | Select-Object number, name, shortdescription, longdescription, deeplink
     $selectedStation = $stationList | Out-GridView -Title "Available Stations" -PassThru
     Get-Playlist -Channel $selectedStation.deeplink | Format-Playlist | Invoke-Playlist
+
 }
 
+function Test-Playlist {
 
-Export-ModuleMember -Function Get-Station, Get-Playlist, Format-Playlist, Invoke-Playlist, Show-Player
+    [cmdletbinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Channel
+    )
+
+
+    $url = "https://xmplaylist.com/api/station/$Channel"
+    while ($url) 
+    {
+        $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
+        $response.results  | Format-Playlist | Out-Host
+        $url = $response.next
+        
+        Read-Host "Press Enter to load more, or Ctrl+C to exit"
+        Write-Output "`nLoading more tracks...`n"
+
+    }
+}
+
+Export-ModuleMember -Function Get-Station, Get-Playlist, Format-Playlist, Invoke-Playlist, Show-Player, Test-Playlist
