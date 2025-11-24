@@ -82,7 +82,7 @@ function Get-Playlist{
             $Limit--
         }
 
-        return $allResults 
+        return $allResults
     } 
     catch     
     {
@@ -91,6 +91,52 @@ function Get-Playlist{
 }
 
 
+function Get-PlaylistItemData
+{
+    <#
+    .SYNOPSIS
+    Extracts key information from a playlist item.
+
+    .DESCRIPTION
+    This function takes a playlist item object (as returned by Get-XMPlaylist) and extracts key information such as artist, title, link, and timestamp.
+    It returns a custom PowerShell object with these properties for easier consumption.
+
+    .PARAMETER Item
+    The playlist item object to process.
+
+    .PARAMETER Site
+    The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
+
+    .EXAMPLE
+    $itemData = Get-PlaylistItemData -Item $playlistItem -Site 'youtube'
+
+    Extracts key information from the given playlist item and stores it in the `$itemData` variable.
+
+    #>
+    
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSCustomObject]$Item,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Site = 'youtube'  # Default site for link extraction (e.g., 'youtube', 'spotify')
+    )
+
+    $artist = if ($Item.track.artists) { $Item.track.artists -join ', ' } else { 'Unknown' }
+    $title = if ($Item.track.title) { $Item.track.title } else { 'Unknown' }
+    $time = if ($Item.timestamp) { ([datetime]::Parse($Item.timestamp)).ToLocalTime() } else { 'Unknown' }
+
+    $link = if ($Item.links) { ($Item.links | Where-Object { $_.site -eq $Site } | Select-Object -First 1).url } else { $null }
+
+    return [PSCustomObject]@{
+        Artist    = $artist
+        Title     = $title
+        Link      = $link
+        Timestamp = $time
+    }
+
+}
 
 function Format-Playlist {
     <#
@@ -130,25 +176,70 @@ function Format-Playlist {
     }
     process {
         foreach ($Item in $Items) {
-            $artist = if ($Item.track.artists) { $Item.track.artists -join ', ' } else { 'Unknown' }
-            $title = if ($Item.track.title) { $Item.track.title } else { 'Unknown' }
-            $time = if ($Item.timestamp) { ([datetime]::Parse($Item.timestamp)).ToLocalTime() } else { 'Unknown' }
+            $formattedItem = Get-PlaylistItemData -Item $Item -Site $Site
+            $formattedItems += $formattedItem
 
-            $link = if ($Item.links) { ($Item.links | Where-Object { $_.site -eq $Site } | Select-Object -First 1).url } else { $null }
-
-            $formattedItem = [PSCustomObject]@{
-                Artist    = $artist
-                Title     = $title
-                Link      = $link
-                Timestamp = $time
-            }
-
-            $formattedItems += $formattedItem            
+          
         }
     }
     end {
         return $formattedItems
      }
+}
+
+function Test-Dependency {
+    <#
+    .SYNOPSIS   
+    Checks if a required command-line dependency is installed.
+    .DESCRIPTION
+    This function checks if a specified command-line tool is available in the system PATH.
+    If the tool is not found, it returns $false and displays a warning message.
+    .PARAMETER CommandName
+    The name of the command-line tool to check (e.g., 'yt-dlp.exe
+    .EXAMPLE
+    Test-Dependency -CommandName 'yt-dlp.exe'
+    Checks if 'yt-dlp.exe' is installed and available in the system PATH.
+    #>
+
+    [CmdletBinding()]
+    param (
+        [string]$CommandName
+    )
+
+    if (-not (Get-Command $CommandName -ErrorAction SilentlyContinue)) {
+        Write-Warning "$CommandName is not installed."
+        return $false
+    }
+    return $true
+}
+
+function Invoke-DependencyInstall {
+    <#
+    .SYNOPSIS
+    Installs a required command-line dependency using winget.
+    .DESCRIPTION
+    This function attempts to install a specified command-line tool using the Windows Package Manager (winget).
+    It prompts the user for confirmation before proceeding with the installation.
+    .PARAMETER CommandName
+    The name of the command-line tool to install (e.g., 'yt-dlp.exe').
+    .PARAMETER WingetId
+    The winget package identifier for the tool (e.g., 'yt-dlp.yt-dlp').
+    #>
+
+    [CmdletBinding()]
+    param (
+        [string]$CommandName,
+        [string]$WingetId
+    )
+    Write-Host "Installing $CommandName..."
+    winget install $WingetId --silent --accept-source-agreements --accept-package-agreements
+    if ($LASTEXITCODE -eq 0) { 
+        Write-Host "$CommandName installation successful. Please restart your PowerShell session." 
+    } else { 
+        Write-Error "Failed to install $CommandName. Please install it manually and ensure it is in your system PATH."
+
+    }
+
 }
 
 
@@ -164,19 +255,19 @@ function Invoke-Playlist {
     .PARAMETER Item
     The formatted playlist item to play.
    
-    .PARAMETER OutputFile
-    (Optional) If specified, saves the audio to a file instead of playing it.
-    
+    .PARAMETER Download
+    Downloads the audio as an mp3 file instead of playing it.
+
     .PARAMETER Quiet
     If specified, suppresses yt-dlp and ffplay output.
     
     .EXAMPLE
-    Get-Playlist siriusxmhits1 | Format-XMPlaylist | Invoke-XMPlaylist
+    Get-Playlist siriusxmhits1 | Invoke-XMPlaylist
 
     Plays all recently played items for the siriusxmhits1 station. Suppresses output from yt-dlp and ffplay.
     
     .EXAMPLE
-    Get-Playlist siriusxmhits1 | Format-XMPlaylist | Invoke-XMPlaylist -Download
+    Get-Playlist siriusxmhits1 | Invoke-XMPlaylist -Download
 
     Saves all recently played items for the siriusxmhits1 station to mp3 files.
 
@@ -188,43 +279,69 @@ function Invoke-Playlist {
         [Parameter(Mandatory = $false)]
         [switch]$Download,
         [Parameter(Mandatory = $false)]
-        [switch]$Quiet
+        [switch]$Quiet,
+        [Parameter(Mandatory = $false)]
+        [string]$Site = 'youtube'  # Playlist site (e.g., 'youtube', 'spotify')
     )
 
     begin {
-        # Check if yt-dlp.exe and ffplay.exe are available
-        if (-not (Get-Command yt-dlp.exe -ErrorAction SilentlyContinue) -or -not (Get-Command ffplay.exe -ErrorAction SilentlyContinue)) {
-            # Prompt to install yt-dlp via winget
-            $Choice = Read-Host "This function requires additional dependencies. Would you like to install them now? (Y/N)"
-            if ($Choice -eq 'Y' -or $Choice -eq 'y') {
-                Write-Host "Installing dependencies..."
-                winget install yt-dlp.yt-dlp --silent --accept-source-agreements --accept-package-agreements
-                if ($LASTEXITCODE -eq 0) { Write-Host "Installation successful. Please restart your PowerShell session." } 
-                else { Write-Error "Failed to install yt-dlp and ffmpeg. Please install them manually and ensure they are in your system PATH." }
+        $dependencies = @(
+            @{ Name = "yt-dlp.exe"; WingetId = "yt-dlp.yt-dlp" }
+            @{ Name = "ffplay.exe"; WingetId = "ffmpeg.ffmpeg" }
+            @{ Name = "deno.exe"; WingetId = "denoland.deno" }
+        )
+        foreach ($dp in $dependencies) {
+            if (-not (Test-Dependency -CommandName $dp.Name)) {
+                $Choice = Read-Host "$($dp.Name) is required but not installed. Would you like to install it now? (Y/N)"
+                if ($Choice -eq 'Y' -or $Choice -eq 'y') {
+                    Invoke-DependencyInstall -CommandName $dp.Name -WingetId $dp.WingetId
+                } else {
+                    Write-Error "Cannot proceed without installing $($dp.Name). Exiting."
+                    return
+                }
             }
-
         }
         
-        $redirect = if ($Quiet) { "2> NUL" } else { "" }
+        $cmdLine = ""
+        if ($Download) {
+            Write-Host -ForegroundColor Yellow "[xmplaylist] Download mode enabled. Files will be saved as mp3."
+            $cmdLine = 'cmd /c "yt-dlp.exe -t mp3 ""{0}"" -o ""{1} - {2}.mp3"""' 
+        } else {
+            $cmdLine = 'cmd /c "yt-dlp.exe --no-progress -f bestaudio ""{0}"" -o - | ffplay -nodisp -autoexit -i -"' 
+        }
+
+        if ($Quiet) { $cmdLine += ' *> $null'}
+
     }
+
+    
 
     process {
         foreach ($Item in $Items) {
             
+            $current = Get-PlaylistItemData -Item $Item -Site $Site
+            $artist = $current.Artist
+            $title = $current.Title
+            $link = $current.Link
+
+
+            
             # Check if link is available
-            if (-not $Item.Link) {
-                Write-Warning "[xmplaylist] No link available for $($Item.Artist) - $($Item.Title). Skipping."
+            if (-not $link) {
+                Write-Warning "[xmplaylist] No link available for $($artist) - $($title). Skipping."
                 continue
             }
 
-            Write-Host -ForegroundColor Green "[xmplaylist] $($Item.Artist) - $($Item.Title)"
-
-            if ($Download) {
-                $OutputFile = "$($Item.Artist) - $($Item.Title).mp3"
-                cmd /c "yt-dlp.exe -t mp3 `"$($Item.Link)`" -o `"$OutputFile`" $redirect"
+            Write-Host -ForegroundColor Green "[xmplaylist] $($artist) - $($title)"
+         
+            $formattedCmd = if ($Download) {
+                $cmdLine -f $link, $artist, $title
             } else {
-                cmd /c "yt-dlp.exe --no-progress -f bestaudio `"$($Item.Link)`" -o - $redirect | ffplay -nodisp -autoexit -i - $redirect"
+                $cmdLine -f $link
             }
+
+            Invoke-Expression $formattedCmd
+
         }
     }
     end {   
@@ -233,24 +350,36 @@ function Invoke-Playlist {
 
 }
 
-
-function Show-Player {
+function Show-PlaylistHelper{
     <#
     .SYNOPSIS
-    Displays list of available stations and allows user to select one to play.
+    Displays a grid view of available SiriusXM stations for user selection and plays the selected station's playlist.
 
     .DESCRIPTION
-    This function retrieves the list of available SiriusXM stations, displays them in a grid view for user selection, and plays the selected station's playlist.
+    This function retrieves a list of all SiriusXM stations using Get-XMStation, displays them in an interactive grid view for user selection, and then fetches and plays the playlist for the selected station using Get-XMPlaylist and Invoke-XMPlaylist.
+
+    .PARAMETER Download
+    If specified, downloads the audio as mp3 files instead of playing them.
 
     .EXAMPLE
-    Show-XMPlaylist
+    Show-PlaylistHelper
+    
 
     #>
 
-    $stationList = $(Get-XMStation) | Select-Object number, name, shortdescription, longdescription, deeplink
-    $selectedStation = $stationList | Out-GridView -Title "Available Stations" -PassThru
-    Get-Playlist -Channel $selectedStation.deeplink | Format-Playlist | Invoke-Playlist
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]
+        [switch]$Download
+    )
 
+
+    $stationList = Get-Station | Select-Object number, name, shortdescription, longdescription, deeplink
+    $selectedStation = $stationList | Out-GridView -Title "XMPaylist Helper" -PassThru
+    if ($selectedStation)
+    {
+        Get-Playlist -Channel $selectedStation.deeplink | Invoke-Playlist -Download:$Download -Quiet
+    }
 }
 
 function Test-Playlist {
@@ -275,4 +404,4 @@ function Test-Playlist {
     }
 }
 
-Export-ModuleMember -Function Get-Station, Get-Playlist, Format-Playlist, Invoke-Playlist, Show-Player, Test-Playlist
+Export-ModuleMember -Function Get-Station, Get-Playlist, Format-Playlist, Invoke-Playlist, Show-PlaylistHelper, Test-Playlist
