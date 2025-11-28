@@ -30,10 +30,10 @@ Get-Command -Module XMPlaylist
 ```
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
-Function        Format-XMPlaylist                                  1.2.6      XmPlaylist
-Function        Get-XMPlaylist                                     1.2.6      XmPlaylist
-Function        Get-XMStation                                      1.2.6      XmPlaylist
-Function        Invoke-XMPlaylist                                  1.2.6      XmPlaylist
-Function        Show-XMPlaylistHelper                              1.2.6      XmPlaylist
-Function        Test-XMPlaylist                                    1.2.6      XmPlaylist
+Function        Format-XMPlaylist                                  1.2.8     XmPlaylist
+Function        Get-XMPlaylist                                     1.2.8     XmPlaylist
+Function        Get-XMStation                                      1.2.8     XmPlaylist
+Function        Invoke-XMPlaylist                                  1.2.8     XmPlaylist
+Function        Show-XMPlaylistHelper                              1.2.8     XmPlaylist
+Function        Test-XMPlaylist                                    1.2.8     XmPlaylist
 ```

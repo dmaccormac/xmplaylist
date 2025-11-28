@@ -4,7 +4,7 @@
 # This script downloads and installs the XMPlaylist PowerShell module
 # from the specified GitHub repository release.
 param (
-    [string]$version = "1.2.6" ,
+    [string]$version = "1.2.8" ,
     [string]$branch = "test"
 )
 
@@ -41,7 +41,7 @@ try {
     exit 1
 }
 
-# Determine source folder (GitHub adds '-vX.X.X' suffix)
+# Define source path
 $source = Join-Path $modulePath "xmplaylist-$branch"
 
 if (-not (Test-Path $source)) {

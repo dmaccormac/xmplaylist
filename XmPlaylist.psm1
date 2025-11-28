@@ -139,9 +139,11 @@ function Format-Playlist {
     #>
     
     [CmdletBinding()]
+
+
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [PSCustomObject]$Items,
+        [PSCustomObject]$Playlist,
 
         [Parameter(Mandatory = $false)]
         [string]$Site = 'youtube'  # Default site for link extraction (e.g., 'youtube', 'spotify')
@@ -288,7 +290,7 @@ function Invoke-Playlist {
             
             if (-not $link) {
                 Write-Warning "[xmplaylist] No link available for $($artist) - $($title). Skipping."
-                continue
+                return
             }
 
             Write-Host -ForegroundColor Green "[xmplaylist] $($artist) - $($title)"
