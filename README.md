@@ -10,7 +10,7 @@ It allows users to retrieve useful data from API responses such as SiriusXM stat
 You can install the module by running the following command in PowerShell:
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/dmaccormac/xmplaylist/archive/refs/heads/test.zip" -OutFile "$env:TEMP\XMPlaylist.zip"; Expand-Archive "$env:TEMP\XMPlaylist.zip" -DestinationPath "$env:USERPROFILE\Documents\WindowsPowerShell\Modules" -Force; Rename-Item "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\xmplaylist-test" "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Force; Get-ChildItem "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\XMPlaylist" -Recurse | Unblock-File
+irm https://raw.githubusercontent.com/dmaccormac/xmplaylist/refs/heads/test/Install.ps1 | iex
 ```
 
 ## Usage
