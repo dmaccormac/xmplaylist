@@ -10,22 +10,12 @@
 function Get-Station {
     <#
     .SYNOPSIS
-    Retrieves a list of all SiriusXM stations.
-
+    Get a list of all SiriusXM stations.
     .DESCRIPTION
     This function calls the xmplaylist.com API endpoint `/api/station` to fetch a list of all available SiriusXM stations.
-
     .EXAMPLE
     Get-XMStation
     Retrieves a list of all SiriusXM stations.
-
-    .EXAMPLE
-    $stations = Get-XMStation | Select-Object name, deeplink
-    Stores the list of stations with their names and deeplinks in the `$stations` variable for further processing.
-
-    .NOTES
-    https://xmplaylist.com/api/station
-
     #>
 
     $url = "https://xmplaylist.com/api/station"
@@ -39,25 +29,24 @@ function Get-Station {
 function Get-Playlist{
     <#
     .SYNOPSIS
-    Get recently played tracks for SiriusXM channel.
-
+    Retrieves the playlist for a specified SiriusXM channel.
     .DESCRIPTION
-    This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch playlist information. 
-    If no channel is specified, it retrieves recently played tracks for all channels.
-
+    This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch the playlist for the specified SiriusXM channel.
+    It supports pagination to retrieve multiple pages of results based on the provided limit parameter.
     .PARAMETER Channel
     The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1"). 
     Use Get-XMStation to retrieve a list of available channels.
-
+    .PARAMETER Limit
+    The number of pages to retrieve. Each page contains a set of playlist items. Default is 1.
     .EXAMPLE
-    Get-XMPlaylist siriusxmhits1 # Retrieves recently played tracks for the "siriusxmhits1" channel
-
+    Get-XMPlaylist siriusxmhits1
+    Retrieves recently played tracks for the "siriusxmhits1" channel
     .EXAMPLE
-    Get-XMPlaylist -Channel "siriusxmhits1/newest" # Retrieves the newest tracks for the "siriusxmhits1" channel
-
+    Get-XMPlaylist -Channel "siriusxmhits1/newest" 
+    Retrieves the newest tracks for the "siriusxmhits1" channel
     .EXAMPLE
-    Get-XMPlaylist -Channel "siriusxmhits1/most-heard" # Retrieves the most-heard tracks for the "siriusxmhits1" channel
-
+    Get-XMPlaylist -Channel "siriusxmhits1/most-heard" 
+    Retrieves the most-heard tracks for the "siriusxmhits1" channel
     #>
 
     [CmdletBinding()]
@@ -96,17 +85,13 @@ function Get-PlaylistItemData
     <#
     .SYNOPSIS
     Extracts key information from a playlist item.
-
     .DESCRIPTION
     This function takes a playlist item object (as returned by Get-XMPlaylist) and extracts key information such as artist, title, link, and timestamp.
     It returns a custom PowerShell object with these properties for easier consumption.
-
     .PARAMETER Item
     The playlist item object to process.
-
     .PARAMETER Site
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
-
     .EXAMPLE
     $itemData = Get-PlaylistItemData -Item $playlistItem -Site 'youtube'
 
@@ -141,24 +126,16 @@ function Get-PlaylistItemData
 function Format-Playlist {
     <#
     .SYNOPSIS
-    Formats a playlist into a custom object with artist, title, link and timestamp.
-
+    Formats a playlist by extracting key information from each item.
     .DESCRIPTION
     This function takes a playlist item object (as returned by Get-XMPlaylist) and extracts key information such as artist, title, link, and timestamp.
     It returns a custom PowerShell object with these properties for easier consumption.
-
-    .PARAMETER Item
+    .PARAMETER Playlist
     The playlist item object to process.
-
     .PARAMETER Site
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
-
     .EXAMPLE
     Get-Playlist siriusxmhits1 | Format-XMPlaylist
-
-    Create $playlist item containing recently played items for siriusxmhits1 station.
-
-
     #>
     
     [CmdletBinding()]
@@ -172,18 +149,16 @@ function Format-Playlist {
 
     # Process each item in the collection
     begin {
-        $formattedItems = @()
+        $formattedPlaylist = @()
     }
     process {
-        foreach ($Item in $Items) {
+        foreach ($Item in $Playlist) {
             $formattedItem = Get-PlaylistItemData -Item $Item -Site $Site
-            $formattedItems += $formattedItem
-
-          
+            $formattedPlaylist += $formattedItem          
         }
     }
     end {
-        return $formattedItems
+        return $formattedPlaylist
      }
 }
 
@@ -242,52 +217,41 @@ function Invoke-DependencyInstall {
 
 }
 
-
-
 function Invoke-Playlist {
     <#
     .SYNOPSIS
-    Plays items in a playlist using yt-dlp and ffplay.
-
+    Plays tracks in a playlist using yt-dlp.
     .DESCRIPTION
-    This function takes an playlist containing a YouTube link and plays the track using yt-dlp to fetch the audio and ffplay to play it.
-    
-    .PARAMETER Item
-    The formatted playlist item to play.
-   
+    This function takes a playlist containing YouTube links and plays the track using yt-dlp to fetch the audio.
+    .PARAMETER Playlist
+    The playlist object to process.
     .PARAMETER Download
-    Downloads the audio as an mp3 file instead of playing it.
-
+    Download audio as mp3 files instead of playing it.
     .PARAMETER Quiet
-    If specified, suppresses yt-dlp and ffplay output.
-    
+    If specified, suppresses yt-dlp output.
     .EXAMPLE
     Get-Playlist siriusxmhits1 | Invoke-XMPlaylist
-
-    Plays all recently played items for the siriusxmhits1 station. Suppresses output from yt-dlp and ffplay.
-    
+    Plays all recently played tracks for the siriusxmhits1 station.
     .EXAMPLE
     Get-Playlist siriusxmhits1 | Invoke-XMPlaylist -Download
+    Saves all recently played tracks for the siriusxmhits1 station to mp3 files.
+    #>
 
-    Saves all recently played items for the siriusxmhits1 station to mp3 files.
-
-#>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [PSCustomObject]$Items,
+        [PSCustomObject]$Playlist,
         [Parameter(Mandatory = $false)]
         [switch]$Download,
         [Parameter(Mandatory = $false)]
         [switch]$Quiet,
         [Parameter(Mandatory = $false)]
-        [string]$Site = 'youtube'  # Playlist site (e.g., 'youtube', 'spotify')
+        [string]$Site = 'youtube'   # Default site for link extraction (e.g., 'youtube', 'spotify'
     )
 
     begin {
         $dependencies = @(
             @{ Name = "yt-dlp.exe"; WingetId = "yt-dlp.yt-dlp" }
-            @{ Name = "ffplay.exe"; WingetId = "ffmpeg.ffmpeg" }
             @{ Name = "deno.exe"; WingetId = "denoland.deno" }
         )
         foreach ($dp in $dependencies) {
@@ -303,6 +267,7 @@ function Invoke-Playlist {
         }
         
         $cmdLine = ""
+
         if ($Download) {
             Write-Host -ForegroundColor Yellow "[xmplaylist] Download mode enabled. Files will be saved as mp3."
             $cmdLine = 'cmd /c "yt-dlp.exe -t mp3 ""{0}"" -o ""{1} - {2}.mp3"""' 
@@ -312,21 +277,14 @@ function Invoke-Playlist {
 
         if ($Quiet) { $cmdLine += ' *> $null'}
 
-    }
+    }    
 
-    
-
-    process {
-        foreach ($Item in $Items) {
-            
-            $current = Get-PlaylistItemData -Item $Item -Site $Site
+    process {            
+            $current = Get-PlaylistItemData -Item $Playlist -Site $Site
             $artist = $current.Artist
             $title = $current.Title
             $link = $current.Link
-
-
             
-            # Check if link is available
             if (-not $link) {
                 Write-Warning "[xmplaylist] No link available for $($artist) - $($title). Skipping."
                 continue
@@ -342,7 +300,6 @@ function Invoke-Playlist {
 
             Invoke-Expression $formattedCmd
 
-        }
     }
     end {   
         Write-Host -ForegroundColor Green "[xmplaylist] Completed processing all items."
@@ -354,17 +311,10 @@ function Show-PlaylistHelper{
     <#
     .SYNOPSIS
     Displays a grid view of available SiriusXM stations for user selection and plays the selected station's playlist.
-
     .DESCRIPTION
-    This function retrieves a list of all SiriusXM stations using Get-XMStation, displays them in an interactive grid view for user selection, and then fetches and plays the playlist for the selected station using Get-XMPlaylist and Invoke-XMPlaylist.
-
+    This function retrieves a list of all SiriusXM stations using Get-Station, displays them in an interactive grid view for user selection, and then fetches and plays the playlist for the selected station using Get-Playlist and Invoke-Playlist.
     .PARAMETER Download
     If specified, downloads the audio as mp3 files instead of playing them.
-
-    .EXAMPLE
-    Show-PlaylistHelper
-    
-
     #>
 
     [CmdletBinding()]
@@ -378,11 +328,25 @@ function Show-PlaylistHelper{
     $selectedStation = $stationList | Out-GridView -Title "XMPaylist Helper" -PassThru
     if ($selectedStation)
     {
-        Get-Playlist -Channel $selectedStation.deeplink | Invoke-Playlist -Download:$Download -Quiet
+        $playlist = Get-Playlist -Channel $selectedStation.deeplink
+        Write-Host -ForegroundColor Yellow "[xmplaylist] Processing playlist $($selectedStation.name) ($($playlist.Count) items)"
+        $playlist | Invoke-Playlist -Download:$Download -Quiet
     }
 }
 
 function Test-Playlist {
+    <#
+    .SYNOPSIS
+    Tests fetching and displaying playlist items for a specified SiriusXM channel.
+    .DESCRIPTION
+    This function retrieves the playlist for a specified SiriusXM channel using Get-Playlist and displays the formatted playlist items in the console.
+    It supports pagination to load more tracks interactively.
+    .PARAMETER Channel
+    The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1").
+    .EXAMPLE
+    Test-XMPlaylist -Channel "siriusxmhits1"
+    Retrieves and displays the playlist for the "siriusxmhits1" channel, allowing the user to load more tracks interactively.
+    #>
 
     [cmdletbinding()]
     param (
