@@ -252,7 +252,6 @@ function Invoke-Playlist {
     begin {
         $dependencies = @(
             @{ Name = "yt-dlp.exe"; WingetId = "yt-dlp.yt-dlp" }
-            @{ Name = "deno.exe"; WingetId = "denoland.deno" }
         )
         foreach ($dp in $dependencies) {
             if (-not (Test-Dependency -CommandName $dp.Name)) {
@@ -263,6 +262,8 @@ function Invoke-Playlist {
                     Write-Error "Cannot proceed without installing $($dp.Name). Exiting."
                     return
                 }
+                Write-Host "$($dp.Name) installed successfully. Please restart your PowerShell session." -ForegroundColor Green
+                return
             }
         }
         
