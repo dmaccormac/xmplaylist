@@ -210,8 +210,10 @@ function Invoke-DependencyInstall {
     winget install $WingetId --silent --accept-source-agreements --accept-package-agreements
     if ($LASTEXITCODE -eq 0) { 
         Write-Host "$CommandName installation successful. Please restart your PowerShell session." 
+        Read-Host "Press Enter to exit."
+        exit
     } else { 
-        Write-Error "Failed to install $CommandName. Please install it manually and ensure it is in your system PATH."
+        Write-Error "Failed to install $CommandName. Please install it manually and ensure it is in your system PATH." -ErrorAction Stop
 
     }
 
@@ -259,11 +261,8 @@ function Invoke-Playlist {
                 if ($Choice -eq 'Y' -or $Choice -eq 'y') {
                     Invoke-DependencyInstall -CommandName $dp.Name -WingetId $dp.WingetId
                 } else {
-                    Write-Error "Cannot proceed without installing $($dp.Name). Exiting."
-                    return
+                    Write-Error "Cannot proceed without installing $($dp.Name). Exiting." -ErrorAction Stop
                 }
-                Write-Host "$($dp.Name) installed successfully. Please restart your PowerShell session." -ForegroundColor Green
-                return
             }
         }
         
@@ -280,7 +279,8 @@ function Invoke-Playlist {
 
     }    
 
-    process {            
+    process {   
+              
             $current = Get-PlaylistItemData -Item $Playlist -Site $Site
             $artist = $current.Artist
             $title = $current.Title
