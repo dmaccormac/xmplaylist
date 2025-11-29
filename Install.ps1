@@ -66,18 +66,34 @@ Get-ChildItem $target -Recurse | Unblock-File
 Write-Host "Importing XMPlaylist module..." -ForegroundColor Cyan
 try {
     Import-Module XMPlaylist -Force -ErrorAction Stop
-    Write-Host "XMPlaylist module imported successfully!" -ForegroundColor Green
+    Write-Host "XMPlaylist module imported successfully!" -ForegroundColor Cyan
 } catch {
     Write-Host "Failed to import XMPlaylist module: $_" -ForegroundColor Red
     exit 1
 }
+
+# Append import statement to $PROFILE if not already present
+$profilePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+$importStatement = "Import-Module XMPlaylist"
+if (Test-Path $profilePath) {
+    $profileContent = Get-Content $profilePath
+    if ($profileContent -notcontains $importStatement) {
+        Write-Host "Adding Import-Module statement to profile..." -ForegroundColor Cyan
+        Add-Content -Path $profilePath -Value "`n$importStatement"
+    } else {
+        Write-Host "Import-Module statement already exists in profile." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "Creating profile and adding Import-Module statement..." -ForegroundColor Cyan
+    New-Item -ItemType File -Path $profilePath -Force | Out-Null
+    Add-Content -Path $profilePath -Value $importStatement
+}
+
 # Clean up
 Remove-Item $tempZip -Force
 Write-Host "Installation complete. You can now use the XMPlaylist module." -ForegroundColor Green
 
-Write-Host "Usage: Import-Module XMPlaylist" -ForegroundColor Cyan
 Write-Host "Available Commands:"
 Get-Command -Module XMPlaylist
 
-Write-Host
-Write-Host "For more information, visit: https://github.com/dmaccormac/XmPlaylist" -ForegroundColor Yellow
+Write-Host "`nFor more information, visit: https://github.com/dmaccormac/XmPlaylist" -ForegroundColor Yellow
