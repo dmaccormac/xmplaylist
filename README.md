@@ -22,31 +22,32 @@ Import-Module XMPlaylist
 ### Find commands
 ```powershell
 Get-Command -Module XMPlaylist
+```
 
+```
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
 Function        Format-XMPlaylist                                  1.3.5      XmPlaylist
 Function        Get-XMPlaylist                                     1.3.5      XmPlaylist
 Function        Get-XMStation                                      1.3.5      XmPlaylist
-
 ```
+
 
 ### Functions
 
 #### Get-XMStation
+This function calls the xmplaylist.com API to fetch a list of all available SiriusXM stations.
 
-Example #1:
 ```powershell
 Get-XMStation
 ```
-Retrieves a list of all available SiriusXM stations.
-
+Retrieves all SiriusXM stations.
 
 ---
 
 #### Get-XMPlaylist
+This function calls the xmplaylist.com API to fetch the playlist for the specified SiriusXM channel.
 
-Example #1:
 ```powershell
 Get-XMPlaylist -Channel "siriusxmhits1"
 ```
@@ -56,9 +57,9 @@ Get recently played tracks for siriusxmhits1 channel.
 
 #### Format-XMPlaylist
 
-Formats a playlist item into a custom object with artist, title, link and timestamp.
+This function takes a playlist from Get-XMPlaylist and extracts artist, title, link, and timestamp for easier consumption. 
 
-Example #1:
+
 ```powershell
 Get-XmPlaylist siriusxmhits1 | Format-XMPlaylist
 ```
