@@ -36,47 +36,52 @@ function Get-Station {
 function Get-Playlist{
     <#
     .SYNOPSIS
-    Get recently played tracks for SiriusXM channel.
-
+    Retrieves the playlist for a specified SiriusXM channel.
     .DESCRIPTION
-    This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch playlist information. 
-    If no channel is specified, it retrieves recently played tracks for all channels.
-
+    This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch the playlist for the specified SiriusXM channel.
+    It supports pagination to retrieve multiple pages of results based on the provided limit parameter.
     .PARAMETER Channel
     The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1"). 
     Use Get-XMStation to retrieve a list of available channels.
-
+    .PARAMETER Limit
+    The number of pages to retrieve. Each page contains a set of playlist items. Default is 1.
     .EXAMPLE
-    Get-XMPlaylist  # Retrieves the general feed (recently played, all channels)
-
+    Get-XMPlaylist siriusxmhits1
+    Retrieves recently played tracks for the "siriusxmhits1" channel
     .EXAMPLE
-    Get-XMPlaylist siriusxmhits1 # Retrieves recently played tracks for the "siriusxmhits1" channel
-
+    Get-XMPlaylist -Channel "siriusxmhits1/newest" 
+    Retrieves the newest tracks for the "siriusxmhits1" channel
     .EXAMPLE
-    Get-XMPlaylist -Channel "siriusxmhits1/newest" # Retrieves the newest tracks for the "siriusxmhits1" channel
-
-    .EXAMPLE
-    Get-XMPlaylist -Channel "siriusxmhits1/most-heard" # Retrieves the most-heard tracks for the "siriusxmhits1" channel
-
+    Get-XMPlaylist -Channel "siriusxmhits1/most-heard" -Limit 3
+    Retrieves the top 3 pages of most-heard tracks for the "siriusxmhits1" channel
     #>
 
     [CmdletBinding()]
     param (
+        [Parameter(Mandatory = $true)]
+        [string]$Channel,
         [Parameter(Mandatory = $false)]
-        [string]$Channel
+        [int]$Limit = 1
         )
 
 
-    $url = "https://xmplaylist.com/api/feed"
-
-    if ($Channel) {
     $url = "https://xmplaylist.com/api/station/$Channel"
-    }
+    $allResults = @()
 
-    try {
-        $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-        return $response
-    } catch {
+    try 
+    {
+        while ($Limit -gt 0 -and $url) 
+        {
+            $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
+            $allResults += $response.results
+            $url = $response.next
+            $Limit--
+        }
+
+        return $allResults
+    } 
+    catch     
+    {
         Write-Error "Failed to retrieve data for channel '$Channel'. $_"
     }
 }
