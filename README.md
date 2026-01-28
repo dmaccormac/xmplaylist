@@ -27,9 +27,8 @@ Get-Command -Module XMPlaylist
 ```
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
-Function        Format-XMPlaylist                                  1.3.5      XmPlaylist
-Function        Get-XMPlaylist                                     1.3.5      XmPlaylist
-Function        Get-XMStation                                      1.3.5      XmPlaylist
+Function        Get-XMPlaylist                                     1.3.6      XmPlaylist
+Function        Get-XMStation                                      1.3.6      XmPlaylist
 ```
 
 
@@ -55,14 +54,3 @@ Get recently played tracks for siriusxmhits1 channel.
 
 ---
 
-#### Format-XMPlaylist
-
-This function takes a playlist from Get-XMPlaylist and extracts artist, title, link, and timestamp for easier consumption. 
-
-
-```powershell
-Get-XmPlaylist siriusxmhits1 | Format-XMPlaylist
-```
-Gets recently played tracks from siriusxmhits1 channel and formats them into an XmPlaylist object.
-
----
