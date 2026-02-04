@@ -1,7 +1,7 @@
 <#
     Module: XmPlaylist
     Description: PowerShell module for accessing xmplaylist.com API
-    Date: 2026.01.26
+    Date: 2026.02.03
     Author: Dan MacCormac <dmaccormac@gmail.com>
     Website: https://github.com/dmaccormac/XmPlaylist
     API Reference: https://xmplaylist.com/api/documentation
@@ -13,6 +13,8 @@ function Get-Station {
     Retrieves a list of all SiriusXM stations.
     .DESCRIPTION
     This function calls the xmplaylist.com API endpoint `/api/station` to fetch a list of all available SiriusXM stations.
+    .PARAMETER Raw
+    If specified, returns the raw API response without conversion.
     .EXAMPLE
     Get-XMStation
     Retrieves and displays all SiriusXM stations.
@@ -21,9 +23,19 @@ function Get-Station {
 
     #>
 
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]
+        [switch]$Raw=$false
+        )
+
     $url = "https://xmplaylist.com/api/station"
     $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-    return $($response | ConvertFrom-ApiStation)
+    #return $($response | ConvertFrom-ApiStation)
+
+    if ($Raw) { return $response }
+    return (ConvertFrom-ApiStation $response)
+    
 
 }
 
@@ -32,28 +44,24 @@ function Get-Playlist{
     <#
     .SYNOPSIS
     Retrieves the playlist for a specified SiriusXM channel.
-    
     .DESCRIPTION
     This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch the playlist for the specified SiriusXM channel.
-    
     .PARAMETER Channel
     The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1"). 
     Use Get-XMStation to retrieve a list of available channels.
-    
     .PARAMETER Link
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
-    
+    Available sites include: amazon, amazonMusic, spotify, appleMusic, itunes, tidal, youtube, youtubeMusic, spotify, soundcloud, deezer, qobuz, pandora.  
     .PARAMETER PageCount
     The number of pages to retrieve. Each page contains 24 items. Default setting is 1 page.
-    
+    .PARAMETER Raw
+    If specified, returns the raw API response without conversion.
     .EXAMPLE
     Get-XMPlaylist siriusxmhits1
-    Retrieves recently played tracks for the "siriusxmhits1" channel
-    
+    Retrieves recently played tracks for the "siriusxmhits1" channel    
     .EXAMPLE
     Get-XMPlaylist -Channel "siriusxmhits1/newest" 
-    Retrieves the newest tracks for the "siriusxmhits1" channel
-    
+    Retrieves the newest tracks for the "siriusxmhits1" channel    
     .EXAMPLE
     Get-XMPlaylist -Channel "siriusxmhits1/most-heard" -PageCount 3
     Retrieves the top 3 pages of most-heard tracks for the "siriusxmhits1" channel
@@ -66,7 +74,9 @@ function Get-Playlist{
         [Parameter(Mandatory = $false)]
         [string]$Link = 'youtube',
         [Parameter(Mandatory = $false)]
-        [int]$PageCount = 1
+        [int]$PageCount = 1,
+        [Parameter(Mandatory = $false)]
+        [switch]$Raw = $false
         )
 
 
@@ -78,7 +88,10 @@ function Get-Playlist{
         while ($PageCount -gt 0 -and $url) 
         {
             $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-            $allResults += $response | ConvertFrom-ApiPlaylist -Site $Link
+                        
+            if ($Raw) {$allResults += $response} 
+            else {$allResults += (ConvertFrom-ApiPlaylist -Items $response -Site $Link)}
+            
             $url = $response.next
             $PageCount--
             Start-Sleep -Milliseconds 200  # To avoid hitting rate limits
@@ -116,7 +129,7 @@ function ConvertFrom-ApiPlaylist {
         [object]$Items,
 
         [Parameter(Mandatory = $false)]
-        [string]$Site = 'youtube'  # Default site for link extraction (e.g., 'youtube', 'spotify')
+        [string]$Site = 'youtube' 
     )
 
     # Process each item in the collection
