@@ -1,56 +1,80 @@
-
 # XmPlaylist
 
 ## Overview
 
-**XmPlaylist** is a PowerShell module that provides functions to interact with the [xmplaylist.com API](https://xmplaylist.com/api/documentation). It allows users to retrieve useful data from API responses such as SiriusXM station data and recently played tracks.
+**XmPlaylist** is a PowerShell module that provides functions to interact with the [xmplaylist.com API](https://xmplaylist.com/api/documentation). It allows users to retrieve SiriusXM station metadata and recently played track playlists.
 
 ## Installation
-You can install the module by running the following command in PowerShell:
+
+Run the installation command in Windows Terminal:
 
 ```powershell
- irm https://tinyurl.com/xmplaylist | iex 
+irm https://tinyurl.com/xmplaylist | iex
 ```
 
 ## Usage
+### Enable running scripts (if required)
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
 
 ### Import the module
 ```powershell
-Import-Module XMPlaylist
+Import-Module XmPlaylist
 ```
 
-### Find commands
+### List exported functions
 ```powershell
-Get-Command -Module XMPlaylist
+Get-Command -Module XmPlaylist
 ```
 
-```
-CommandType     Name                                               Version    Source
------------     ----                                               -------    ------
-Function        Get-XMPlaylist                                     1.3.6      XmPlaylist
-Function        Get-XMStation                                      1.3.6      XmPlaylist
-```
+You should see the list of functions:
 
+```
+Function        Get-Station
+Function        Get-Playlist
+```
 
 ### Functions
 
-#### Get-XMStation
-This function calls the xmplaylist.com API to fetch a list of all available SiriusXM stations.
+#### Get-Station
+Retrieves SiriusXM stations from the xmplaylist.com API. By default the function returns converted station objects. 
+
+Parameters:
+- `-Filter <string>`: optional search term that filters results by Name, Deeplink, Number or ShortDescription.
+- `-Raw`: return the raw API response.
+
+Examples:
 
 ```powershell
-Get-XMStation
+# List all stations (converted objects)
+Get-XMStation | Select-Object -First 10
+
+# Filter stations with partial match
+Get-XMStation -Filter rock
+
+# Get raw API response
+Get-XMStation -Raw
 ```
-Retrieves all SiriusXM stations.
 
----
+----
 
-#### Get-XMPlaylist
-This function calls the xmplaylist.com API to fetch the playlist for the specified SiriusXM channel.
+#### Get-Playlist
+Retrieves the playlist for a specified SiriusXM channel.
+
+Parameters:
+- `-Channel <string>`: deeplink name of the channel (e.g., "siriusxmhits1").
+- `-Link <string>`: the site to extract links from (default `youtube`). 
+- `-PageCount <int>`: how many pages to fetch (each page ~24 items).
+- `-Raw`: return the raw API response.
+
+Example:
 
 ```powershell
-Get-XMPlaylist -Channel "siriusxmhits1"
+Get-XMPlaylist -Channel "siriusxmhits1" -PageCount 2 -Link spotify
 ```
-Get recently played tracks for siriusxmhits1 channel.
 
----
+----
+
+
 

@@ -1,7 +1,7 @@
 <#
     Module: XmPlaylist
     Description: PowerShell module for accessing xmplaylist.com API
-    Date: 2026.02.03
+    Date: 2026.02.04
     Author: Dan MacCormac <dmaccormac@gmail.com>
     Website: https://github.com/dmaccormac/XmPlaylist
     API Reference: https://xmplaylist.com/api/documentation
@@ -10,35 +10,57 @@
 function Get-Station {
     <#
     .SYNOPSIS
-    Retrieves a list of all SiriusXM stations.
+    Retrieves SiriusXM stations from the xmplaylist.com API.
     .DESCRIPTION
-    This function calls the xmplaylist.com API endpoint `/api/station` to fetch a list of all available SiriusXM stations.
+    Calls the `/api/station` endpoint and returns station objects.
+    If no parameters are specified, all stations are returned.
+    Use the `-Filter` parameter to search stations by Name, Number, Deeplink, or Description.
+    By default it returns converted station objects; use `-Raw` to return the raw API response.
+    .PARAMETER Filter
+    Optional search term to filter stations by Name, Number, Deeplink or Description.
     .PARAMETER Raw
-    If specified, returns the raw API response without conversion.
+    If specified, returns the raw API response without conversion or filtering.
     .EXAMPLE
-    Get-XMStation
-    Retrieves and displays all SiriusXM stations.
-    .NOTES
-    https://xmplaylist.com/api/station
-
+    Get-Station -Filter rock
+    Retrieves stations that match 'rock' in any of the searchable fields.
     #>
 
     [CmdletBinding()]
     param (
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, Position = 0)]
+        [string]$Filter,
+
         [Parameter(Mandatory = $false)]
-        [switch]$Raw=$false
-        )
+        [switch]$Raw = $false
 
-    $url = "https://xmplaylist.com/api/station"
-    $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-    #return $($response | ConvertFrom-ApiStation)
+    )
 
-    if ($Raw) { return $response }
-    return (ConvertFrom-ApiStation $response)
-    
+    begin {
+        $url = "https://xmplaylist.com/api/station"
+    }
+
+    process {
+        try {
+            $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" } -ErrorAction Stop
+        }
+        catch {
+            Write-Error "Failed to retrieve station list: $_"
+            return
+        }
+
+         if ($Raw) { $response; return } 
+
+        $items = ConvertFrom-ApiStation -Items $response  
+        
+        if ($Filter) {
+            $items = $items | Where-Object { ($_ -like "*$Filter*") }
+        }
+
+        return $items | Select-Object Number, Deeplink, Name, Description
+
+    }
 
 }
-
 
 function Get-Playlist{
     <#
@@ -188,14 +210,15 @@ function ConvertFrom-ApiStation {
             $number = if ($Item.number) { $Item.number } else { 'Unknown' }
             $name = if ($Item.name) { $Item.name } else { 'Unknown' }
             $description = if ($Item.shortDescription) { $Item.shortDescription } else { 'Unknown' }
+            $longDescription = if ($Item.longDescription) { $Item.longDescription } else { 'Unknown' }
             $deeplink = if ($Item.deeplink) { $Item.deeplink } else { 'Unknown' }
 
             $formattedItem = [PSCustomObject]@{
-                Number      = $number
-                Deeplink    = $deeplink
-                Name        = $name
-                Description = $description
-
+                Number         = $number
+                Deeplink       = $deeplink
+                Name           = $name
+                Description    = $description
+                LongDescription = $longDescription
             }
 
             $formattedItems += $formattedItem
