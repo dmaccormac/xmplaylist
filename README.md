@@ -31,13 +31,15 @@ Get-Command -Module XmPlaylist
 You should see the list of functions:
 
 ```
-Function        Get-Station
-Function        Get-Playlist
+CommandType     Name                                               Version    Source
+-----------     ----                                               -------    ------
+Function        Get-XMPlaylist                                     1.3.8      XmPlaylist
+Function        Get-XMStation                                      1.3.8      XmPlaylist
 ```
 
 ### Functions
 
-#### Get-Station
+#### Get-XMStation
 Retrieves SiriusXM stations from the xmplaylist.com API. By default the function returns converted station objects. 
 
 Parameters:
@@ -59,7 +61,7 @@ Get-XMStation -Raw
 
 ----
 
-#### Get-Playlist
+#### Get-XMPlaylist
 Retrieves the playlist for a specified SiriusXM channel.
 
 Parameters:
