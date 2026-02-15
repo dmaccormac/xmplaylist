@@ -1,7 +1,7 @@
 <#
     Module: XmPlaylist
     Description: PowerShell module for accessing xmplaylist.com API
-    Date: 2026.02.04
+    Date: 2026.02.14
     Author: Dan MacCormac <dmaccormac@gmail.com>
     Website: https://github.com/dmaccormac/XmPlaylist
     API Reference: https://xmplaylist.com/api/documentation
@@ -17,7 +17,7 @@ function Get-Station {
     Use the `-Filter` parameter to search stations by Name, Number, Deeplink, or Description.
     By default it returns converted station objects; use `-Raw` to return the raw API response.
     .PARAMETER Filter
-    Optional search term to filter stations by Name, Number, Deeplink or Description.
+    Optional search term to filter stations by Name, Number or Description. 
     .PARAMETER Raw
     If specified, returns the raw API response without conversion or filtering.
     .EXAMPLE
@@ -29,7 +29,6 @@ function Get-Station {
     param (
         [Parameter(Mandatory = $false, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, Position = 0)]
         [string]$Filter,
-
         [Parameter(Mandatory = $false)]
         [switch]$Raw = $false
 
@@ -48,15 +47,16 @@ function Get-Station {
             return
         }
 
-         if ($Raw) { $response; return } 
+        if ($Raw) { 
+            return $response 
+        } 
 
-        $items = ConvertFrom-ApiStation -Items $response  
-        
+        $items = ConvertFrom-ApiStation -Items $response        
         if ($Filter) {
             $items = $items | Where-Object { ($_ -like "*$Filter*") }
         }
 
-        return $items | Select-Object Number, Deeplink, Name, Description
+        return $items | Select-Object -Property Number, Name, Deeplink, Description
 
     }
 
@@ -69,8 +69,11 @@ function Get-Playlist{
     .DESCRIPTION
     This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch the playlist for the specified SiriusXM channel.
     .PARAMETER Channel
-    The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1"). 
-    Use Get-XMStation to retrieve a list of available channels.
+    The deeplink identifier for the SiriusXM channel (e.g., siriusxmhits1).
+     - Use 'channel-name/newest' to get recently played tracks.
+     - Use 'channel-name/most-heard' to get the most heard tracks.
+     - If only the channel name is provided (e.g., 'siriusxmhits1'), it defaults to retrieving recently played tracks.
+     - You can find channel deeplinks using the Get-XMStation function.
     .PARAMETER Link
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
     Available sites include: amazon, amazonMusic, spotify, appleMusic, itunes, tidal, youtube, youtubeMusic, spotify, soundcloud, deezer, qobuz, pandora.  
@@ -78,9 +81,11 @@ function Get-Playlist{
     The number of pages to retrieve. Each page contains 24 items. Default setting is 1 page.
     .PARAMETER Raw
     If specified, returns the raw API response without conversion.
+    .PARAMETER Filter
+    Optional search term to filter tracks by Artist or Title.
     .EXAMPLE
     Get-XMPlaylist siriusxmhits1
-    Retrieves recently played tracks for the "siriusxmhits1" channel    
+    Retrieves recently played tracks for the "SiriusXM Hits 1" channel    
     .EXAMPLE
     Get-XMPlaylist -Channel "siriusxmhits1/newest" 
     Retrieves the newest tracks for the "siriusxmhits1" channel    
@@ -98,9 +103,10 @@ function Get-Playlist{
         [Parameter(Mandatory = $false)]
         [int]$PageCount = 1,
         [Parameter(Mandatory = $false)]
-        [switch]$Raw = $false
+        [switch]$Raw = $false,
+        [Parameter(Mandatory = $false)]
+        [string]$Filter
         )
-
 
     $url = "https://xmplaylist.com/api/station/$Channel"
     $allResults = @()
@@ -119,6 +125,9 @@ function Get-Playlist{
             Start-Sleep -Milliseconds 200  # To avoid hitting rate limits
         }
 
+        if ($Filter) {
+            $allResults = $allResults | Where-Object { ($_ -like "*$Filter*") }
+        }
         return $allResults 
     } 
     catch     

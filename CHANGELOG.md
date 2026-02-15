@@ -7,3 +7,7 @@
 - Add -Filter parameter to Get-XMStation
 - Update ConvertFrom-APIStation function
 - Update README.md
+
+1.3.9
+- Update Get-XMStation
+- Add -Filter parameter to Get-XMPlaylist
