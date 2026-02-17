@@ -1,7 +1,7 @@
 <#
     Module: XmPlaylist
     Description: PowerShell module for accessing xmplaylist.com API
-    Date: 2026.02.14
+    Date: 2026.02.16
     Author: Dan MacCormac <dmaccormac@gmail.com>
     Website: https://github.com/dmaccormac/XmPlaylist
     API Reference: https://xmplaylist.com/api/documentation
@@ -10,14 +10,14 @@
 function Get-Station {
     <#
     .SYNOPSIS
-    Retrieves SiriusXM stations from the xmplaylist.com API.
+    Retrieves a list of SiriusXM stations from the xmplaylist.com API.
     .DESCRIPTION
-    Calls the `/api/station` endpoint and returns station objects.
-    If no parameters are specified, all stations are returned.
-    Use the `-Filter` parameter to search stations by Name, Number, Deeplink, or Description.
-    By default it returns converted station objects; use `-Raw` to return the raw API response.
+    This function calls the xmplaylist.com API to fetch a list of SiriusXM stations.
+    It supports optional filtering by station name, number, or description, and can return either a formatted list of stations or the raw API response.
     .PARAMETER Filter
     Optional search term to filter stations by Name, Number or Description. 
+    .PARAMETER Exact
+    Used in conjunction with -Filter. If specified, performs an exact match search instead of a wildcard search.
     .PARAMETER Raw
     If specified, returns the raw API response without conversion or filtering.
     .EXAMPLE
@@ -27,8 +27,10 @@ function Get-Station {
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $false, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, Position = 0)]
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, Position = 0)]
         [string]$Filter,
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true)]
+        [switch]$Exact = $false,
         [Parameter(Mandatory = $false)]
         [switch]$Raw = $false
 
@@ -51,12 +53,31 @@ function Get-Station {
             return $response 
         } 
 
-        $items = ConvertFrom-ApiStation -Items $response        
+        $items = ConvertFrom-ApiStation -Items $response  
+        
         if ($Filter) {
-            $items = $items | Where-Object { ($_ -like "*$Filter*") }
+            if ($Exact) {
+                $items = $items | Where-Object { 
+                    $_.Name -eq $Filter -or 
+                    $_.Number -eq $Filter -or
+                    $_.Deeplink -eq $Filter -or 
+                    $_.Description -eq $Filter -or 
+                    $_.LongDescription -eq $Filter
+                }
+            } else {
+                $items = $items | Where-Object { 
+                    $_.Name -like "*$Filter*" -or 
+                    $_.Number -like "*$Filter*" -or 
+                    $_.Deeplink -like "*$Filter*" -or 
+                    $_.Description -like "*$Filter*" -or 
+                    $_.LongDescription -like "*$Filter*"
+                }
+                
+            }
+            return $items
         }
 
-        return $items | Select-Object -Property Number, Name, Deeplink, Description
+        return $items | Select-Object -Property Number, Name, Description
 
     }
 
@@ -65,39 +86,33 @@ function Get-Station {
 function Get-Playlist{
     <#
     .SYNOPSIS
-    Retrieves the playlist for a specified SiriusXM channel.
+    Retrieves a list of recently played tracks from SiriusXM.
     .DESCRIPTION
-    This function calls the xmplaylist.com API endpoint `/api/station/{channel}` to fetch the playlist for the specified SiriusXM channel.
+    This function calls the xmplaylist.com API to fetch recently played tracks for a specified SiriusXM channel.
+    It supports pagination to retrieve multiple pages of results, filtering by search term, and can return either a formatted list of tracks or the raw API response.
     .PARAMETER Channel
-    The deeplink identifier for the SiriusXM channel (e.g., siriusxmhits1).
-     - Use 'channel-name/newest' to get recently played tracks.
-     - Use 'channel-name/most-heard' to get the most heard tracks.
-     - If only the channel name is provided (e.g., 'siriusxmhits1'), it defaults to retrieving recently played tracks.
-     - You can find channel deeplinks using the Get-XMStation function.
+    The channel to retrieve the playlist for. This can be the channel's name, number, or deeplink. If not specified, it retrieves the default feed.
+    Also accepts pipeline input, allowing you to pass station objects directly from Get-Station. 
     .PARAMETER Link
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
-    Available sites include: amazon, amazonMusic, spotify, appleMusic, itunes, tidal, youtube, youtubeMusic, spotify, soundcloud, deezer, qobuz, pandora.  
+    Available sites: amazon, amazonMusic, appleMusic, deezer, itunes, pandora, soundcloud, spotify, tidal, youtube, youtubeMusic, qobuz.  
     .PARAMETER PageCount
     The number of pages to retrieve. Each page contains 24 items. Default setting is 1 page.
     .PARAMETER Raw
     If specified, returns the raw API response without conversion.
     .PARAMETER Filter
-    Optional search term to filter tracks by Artist or Title.
+    Optional search term to filter tracks by Artist, Title, Channel, Link, or Timestamp.
+    .PARAMETER Exact
+    If specified, performs an exact match search instead of a wildcard search.
     .EXAMPLE
     Get-XMPlaylist siriusxmhits1
     Retrieves recently played tracks for the "SiriusXM Hits 1" channel    
-    .EXAMPLE
-    Get-XMPlaylist -Channel "siriusxmhits1/newest" 
-    Retrieves the newest tracks for the "siriusxmhits1" channel    
-    .EXAMPLE
-    Get-XMPlaylist -Channel "siriusxmhits1/most-heard" -PageCount 3
-    Retrieves the top 3 pages of most-heard tracks for the "siriusxmhits1" channel
     #>
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
-        [string]$Channel,
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true, Position = 0)]
+        $Channel,
         [Parameter(Mandatory = $false)]
         [string]$Link = 'youtube',
         [Parameter(Mandatory = $false)]
@@ -105,34 +120,76 @@ function Get-Playlist{
         [Parameter(Mandatory = $false)]
         [switch]$Raw = $false,
         [Parameter(Mandatory = $false)]
-        [string]$Filter
+        [string]$Filter,
+        [Parameter(Mandatory = $false)]
+        [switch]$Exact = $false
         )
 
-    $url = "https://xmplaylist.com/api/station/$Channel"
-    $allResults = @()
 
-    try 
-    {
-        while ($PageCount -gt 0 -and $url) 
+    begin {
+        $p = $PageCount 
+    }
+
+    process {
+        try 
         {
-            $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-                        
-            if ($Raw) {$allResults += $response} 
-            else {$allResults += (ConvertFrom-ApiPlaylist -Items $response -Site $Link)}
-            
-            $url = $response.next
-            $PageCount--
-            Start-Sleep -Milliseconds 200  # To avoid hitting rate limits
-        }
 
-        if ($Filter) {
-            $allResults = $allResults | Where-Object { ($_ -like "*$Filter*") }
+            if ($Channel -is [string] -or $Channel -is [int])
+            {
+                $Channel = Get-Station -Filter $Channel -Exact | Select-Object -First 1
+                if (-not $Channel) {
+                    Write-Error "No station found matching '$Channel'. Please check the channel name/number and try again."
+                    return
+                }
+            }
+
+
+            $url = "https://xmplaylist.com/api/feed" # Default feed if no channel specified
+            if ($Channel) {
+                $url = "https://xmplaylist.com/api/station/$($Channel.Deeplink)"
+            }
+
+            $allResults = @()
+            $PageCount = $p # Restore original PageCount value for loop control
+
+            while ($PageCount -gt 0 -and $url) 
+            {
+                $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
+                            
+                if ($Raw) {$allResults += $response} 
+                else {$allResults += (ConvertFrom-ApiPlaylist -Items $response -Site $Link)}
+                
+                $url = $response.next
+                $PageCount--
+                Start-Sleep -Milliseconds 200  # To avoid hitting rate limits
+            }
+
+            if ($Filter) {
+                if ($Exact) {
+                    $allResults = $allResults | Where-Object { 
+                        $_.Artist -eq $Filter -or 
+                        $_.Title -eq $Filter -or 
+                        $_.Channel -eq $Filter -or
+                        $_.Link -eq $Filter -or 
+                        $_.Timestamp -eq $Filter
+                    }
+                } else {
+                    $allResults = $allResults | Where-Object { 
+                        $_.Artist -like "*$Filter*" -or 
+                        $_.Title -like "*$Filter*" -or 
+                        $_.Channel -like "*$Filter*" -or 
+                        $_.Link -like "*$Filter*" -or 
+                        $_.Timestamp -like "*$Filter*"
+                    }
+                }
+            }
+             
+        } 
+        catch     
+        {
+            Write-Error "Failed to retrieve data for channel '$Channel'. $_"
         }
-        return $allResults 
-    } 
-    catch     
-    {
-        Write-Error "Failed to retrieve data for channel '$Channel'. $_"
+        return $allResults
     }
 }
 
@@ -142,16 +199,12 @@ function ConvertFrom-ApiPlaylist {
     .SYNOPSIS
     Converts playlist items from API format to a custom object.
     .DESCRIPTION
-    This function takes a playlist item object (as returned by Get-XMPlaylist) and extracts key information such as artist, title, link, and timestamp.
-    It returns a custom PowerShell object with these properties for easier consumption.
+    This function is used by Get-Playlist to convert the raw API response into a more user-friendly format. It extracts key information such as artist, title, channel, timestamp, and a link for the specified site.
+    It returns a custom PowerShell object with selected properties for easier consumption.
     .PARAMETER Item
     The playlist item object to process.
     .PARAMETER Site
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
-    .EXAMPLE
-    Get-Playlist siriusxmhits1 | ConvertFrom-ApiPlaylist
-    Converts the API response returned from Get-Playlist.
-
     #>
     
     [CmdletBinding()]
@@ -163,30 +216,33 @@ function ConvertFrom-ApiPlaylist {
         [string]$Site = 'youtube' 
     )
 
-    # Process each item in the collection
     begin {
         $formattedItems = @()
     }
+    
     process {
         foreach ($Item in $Items.results) {
-            $artist = if ($Item.track.artists) { $Item.track.artists -join ', ' } else { 'Unknown' }
-            $title = if ($Item.track.title) { $Item.track.title } else { 'Unknown' }
-            $time = if ($Item.timestamp) { ([datetime]::Parse($Item.timestamp)).ToLocalTime() } else { 'Unknown' }
-
+            $artist = if ($Item.track.artists) { $Item.track.artists -join ', ' } else { $null }
+            $title = if ($Item.track.title) { $Item.track.title } else { $null }
+            $time = if ($Item.timestamp) { ([datetime]::Parse($Item.timestamp)).ToLocalTime() } else { $null }
+            $channel = if ($Item.channelId) { $Item.channelId} else { ($Items.channel.deeplink).ToLower() }
             $link = if ($Item.links) { ($Item.links | Where-Object { $_.site -eq $Site } | Select-Object -First 1).url } else { $null }
 
+           
             $formattedItem = [PSCustomObject]@{
+                PSTypeName = 'XmPlaylist.Track'
                 Artist    = $artist
                 Title     = $title
+                Channel   = $channel
                 Link      = $link
                 Timestamp = $time
             }
-
+            
             $formattedItems += $formattedItem
         }
     }
     end {
-        return $formattedItems
+        return $formattedItems | Where-Object { $null -ne $_.Link } # Filter out items without a link
     }
 }
 
@@ -195,14 +251,11 @@ function ConvertFrom-ApiStation {
     .SYNOPSIS
     Converts station items from API format to a custom object.
     .DESCRIPTION
-    This function takes a station item object (as returned by Get-XMStation) and extracts key information such as number, name, and description.
-    It returns a custom PowerShell object with these properties for easier consumption.
+    This function is used by Get-Station to convert the raw API response into a more user-friendly format. It extracts key information such as station number, name, description, and deeplink.
+    It returns a custom PowerShell object with selected properties for easier consumption.
     .PARAMETER Item
     The station item object to process.
-    .EXAMPLE
-    Get-Station | ConvertFrom-ApiStation
-    Converts the API response returned from Get-Station.
- #>
+    #>
     
     [CmdletBinding()]
     param (
@@ -210,17 +263,16 @@ function ConvertFrom-ApiStation {
         [object]$Items
     )
 
-    # Process each item in the collection
     begin {
         $formattedItems = @()
     }
     process {
         foreach ($Item in $Items.results) {
-            $number = if ($Item.number) { $Item.number } else { 'Unknown' }
-            $name = if ($Item.name) { $Item.name } else { 'Unknown' }
-            $description = if ($Item.shortDescription) { $Item.shortDescription } else { 'Unknown' }
-            $longDescription = if ($Item.longDescription) { $Item.longDescription } else { 'Unknown' }
-            $deeplink = if ($Item.deeplink) { $Item.deeplink } else { 'Unknown' }
+            $number = if ($Item.number) { $Item.number } else { $null }
+            $name = if ($Item.name) { $Item.name } else { $null }
+            $description = if ($Item.shortDescription) { $Item.shortDescription } else { $null }
+            $longDescription = if ($Item.longDescription) { $Item.longDescription } else { $null }
+            $deeplink = if ($Item.deeplink) { $Item.deeplink } else { $null }
 
             $formattedItem = [PSCustomObject]@{
                 Number         = $number
@@ -239,5 +291,33 @@ function ConvertFrom-ApiStation {
 
 }
 
+function New-PlaylistHelper {
+    <#
+    .SYNOPSIS
+    Helper function to demonstrate usage of Get-XMStation and Get-XMPlaylist together.
+    .DESCRIPTION
+    Shows all stations in an Out-GridView for selection, then retrieves the playlist for the selected station.
+    .PARAMETER Link
+    The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
+    .PARAMETER PageCount
+    The number of pages to retrieve. Each page contains 24 items. Default setting is 1 page.
+    .EXAMPLE
+    PlaylistHelper -Link spotify -PageCount 2
+    Displays all stations in a grid view for selection, then retrieves the top 2 pages of Spotify links for the selected station's playlist.
+    #>
+    
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]
+        [string]$Link = 'youtube',
+        [Parameter(Mandatory = $false)]
+        [int]$PageCount = 1
+    )
 
-Export-ModuleMember -Function Get-Station, Get-Playlist
+    $Channel = Get-Station | Out-GridView -Title "Select a Channel" -PassThru
+    $Playlist = Get-Playlist -Channel $Channel.Name -Link $Link -PageCount $PageCount 
+    return $Playlist
+
+}
+
+Export-ModuleMember -Function Get-Station, Get-Playlist, New-PlaylistHelper

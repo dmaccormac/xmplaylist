@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <ViewDefinitions>
+    <!-- Default table view for XmPlaylist.Track -->
+    <View>
+      <Name>XmPlaylist.Track.Table</Name>
+      <ViewSelectedBy>
+        <TypeName>XmPlaylist.Track</TypeName>
+      </ViewSelectedBy>
+
+      <TableControl>
+        <!-- AutoSize 'true' makes column widths adapt; set to 'false' if you prefer fixed widths only -->
+        <AutoSize>true</AutoSize>
+
+        <TableHeaders>
+          <TableColumnHeader>
+            <Label>Artist</Label>
+            <Width>22</Width>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Title</Label>
+            <Width>28</Width>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Channel</Label>
+            <Width>10</Width>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Link</Label>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Timestamp</Label>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+        </TableHeaders>
+
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <!-- These pull straight properties -->
+              <TableColumnItem>
+                <PropertyName>Artist</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>Title</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>Channel</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>Link</PropertyName>
+              </TableColumnItem>
+
+              <!-- Format timestamp in a compact way -->
+              <TableColumnItem>
+                <ScriptBlock>
+                  if ($_.Timestamp -is [datetime]) { $_.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") } else { "$($_.Timestamp)" }
+                </ScriptBlock>
+              </TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+
+      </TableControl>
+    </View>
+  </ViewDefinitions>
+</Configuration>

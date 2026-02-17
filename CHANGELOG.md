@@ -11,3 +11,30 @@
 1.3.9
 - Update Get-XMStation
 - Add -Filter parameter to Get-XMPlaylist
+
+1.4.0
+- Update Get-XMStation
+    - Update filtering logic and add -Exact switch
+    - Remove deeplink field from default output
+- Update Get-XMPlaylist
+    - Update filtering logic and add -Exact switch
+    - Show default feed if no channel specified
+    - Specify channel by name, number, deeplink
+    - Add support to pass station objects directly from Get-Station
+    - Add pipeline support for -Channel parameter
+    - Add support for multiple channel input items 
+
+- Update ConvertFrom-ApiPlaylist
+    - Update formattedItem
+        - Add Channel field 
+        - Create PSType XMPlaylist.Track for better output
+        - Use $null instead of 'Unknown' for empty fields
+        - Filter out items without a link
+
+- Update ConvertFrom-ApiStation
+    - Use $null instead of 'Unknown' for empty fields
+
+- Add New-XmPlaylistHelper function
+    - Demonstrate usage of Get-XMStation and Get-XmPlaylist
+
+
