@@ -37,4 +37,7 @@
 - Add New-XmPlaylistHelper function
     - Demonstrate usage of Get-XMStation and Get-XmPlaylist
 
-
+1.4.1
+- Add Size parameter to Get-XMPlaylist
+- Update function Show-XMPlaylistPicker
+- Update README.md

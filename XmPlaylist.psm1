@@ -1,7 +1,7 @@
 <#
     Module: XmPlaylist
     Description: PowerShell module for accessing xmplaylist.com API
-    Date: 2026.02.16
+    Date: 2026.03.1
     Author: Dan MacCormac <dmaccormac@gmail.com>
     Website: https://github.com/dmaccormac/XmPlaylist
     API Reference: https://xmplaylist.com/api/documentation
@@ -96,8 +96,8 @@ function Get-Playlist{
     .PARAMETER Link
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
     Available sites: amazon, amazonMusic, appleMusic, deezer, itunes, pandora, soundcloud, spotify, tidal, youtube, youtubeMusic, qobuz.  
-    .PARAMETER PageCount
-    The number of pages to retrieve. Each page contains 24 items. Default setting is 1 page.
+    .PARAMETER Size
+    The number of tracks to retrieve. Default is 24 (one page).
     .PARAMETER Raw
     If specified, returns the raw API response without conversion.
     .PARAMETER Filter
@@ -116,7 +116,8 @@ function Get-Playlist{
         [Parameter(Mandatory = $false)]
         [string]$Link = 'youtube',
         [Parameter(Mandatory = $false)]
-        [int]$PageCount = 1,
+        [ValidateRange(1,100)]
+        [int]$Size = 24,
         [Parameter(Mandatory = $false)]
         [switch]$Raw = $false,
         [Parameter(Mandatory = $false)]
@@ -125,10 +126,6 @@ function Get-Playlist{
         [switch]$Exact = $false
         )
 
-
-    begin {
-        $p = $PageCount 
-    }
 
     process {
         try 
@@ -150,9 +147,8 @@ function Get-Playlist{
             }
 
             $allResults = @()
-            $PageCount = $p # Restore original PageCount value for loop control
 
-            while ($PageCount -gt 0 -and $url) 
+            while ($allResults.Count -lt $Size -and $url) 
             {
                 $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
                             
@@ -160,7 +156,6 @@ function Get-Playlist{
                 else {$allResults += (ConvertFrom-ApiPlaylist -Items $response -Site $Link)}
                 
                 $url = $response.next
-                $PageCount--
                 Start-Sleep -Milliseconds 200  # To avoid hitting rate limits
             }
 
@@ -189,7 +184,7 @@ function Get-Playlist{
         {
             Write-Error "Failed to retrieve data for channel '$Channel'. $_"
         }
-        return $allResults
+        return $allResults | Select-Object -First $Size
     }
 }
 
@@ -291,7 +286,7 @@ function ConvertFrom-ApiStation {
 
 }
 
-function New-PlaylistHelper {
+function Show-PlaylistPicker {
     <#
     .SYNOPSIS
     Helper function to demonstrate usage of Get-XMStation and Get-XMPlaylist together.
@@ -299,11 +294,11 @@ function New-PlaylistHelper {
     Shows all stations in an Out-GridView for selection, then retrieves the playlist for the selected station.
     .PARAMETER Link
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
-    .PARAMETER PageCount
-    The number of pages to retrieve. Each page contains 24 items. Default setting is 1 page.
+    .PARAMETER Size
+    The number of tracks to retrieve. Default is 24 (one page).
     .EXAMPLE
-    PlaylistHelper -Link spotify -PageCount 2
-    Displays all stations in a grid view for selection, then retrieves the top 2 pages of Spotify links for the selected station's playlist.
+    Show-PlaylistPicker -Link spotify -Size 50
+    Displays all stations in a grid view for selection, then retrieves the 50 most recent tracks for the selected station with Spotify links.
     #>
     
     [CmdletBinding()]
@@ -311,13 +306,13 @@ function New-PlaylistHelper {
         [Parameter(Mandatory = $false)]
         [string]$Link = 'youtube',
         [Parameter(Mandatory = $false)]
-        [int]$PageCount = 1
+        [int]$Size = 24
     )
 
     $Channel = Get-Station | Out-GridView -Title "Select a Channel" -PassThru
-    $Playlist = Get-Playlist -Channel $Channel.Name -Link $Link -PageCount $PageCount 
+    $Playlist = Get-Playlist -Channel $Channel.Name -Link $Link -Size $Size 
     return $Playlist
 
 }
 
-Export-ModuleMember -Function Get-Station, Get-Playlist, New-PlaylistHelper
+Export-ModuleMember -Function Get-Station, Get-Playlist, Show-PlaylistPicker

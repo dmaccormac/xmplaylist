@@ -2,7 +2,7 @@
 
 ## Overview
 
-**XmPlaylist** is a PowerShell module that provides functions to interact with the [xmplaylist.com API](https://xmplaylist.com/api/documentation). It allows users to retrieve SiriusXM station metadata and recently played track playlists.
+**XmPlaylist** is a PowerShell module that provides functions to interact with the [xmplaylist.com API](https://xmplaylist.com/api/documentation). It allows users to retrieve SiriusXM station metadata and recently played tracks.
 
 ## Installation
 
@@ -33,8 +33,9 @@ You should see the list of functions:
 ```
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
-Function        Get-XMPlaylist                                     1.3.8      XmPlaylist
-Function        Get-XMStation                                      1.3.8      XmPlaylist
+Function        Get-XMPlaylist                                     1.4.1      XmPlaylist
+Function        Get-XMStation                                      1.4.1      XmPlaylist
+Function        Show-XMPlaylistPicker                              1.4.1      XmPlaylist
 ```
 
 ### Functions
@@ -43,7 +44,7 @@ Function        Get-XMStation                                      1.3.8      Xm
 Retrieves SiriusXM stations from the xmplaylist.com API. By default the function returns converted station objects. 
 
 Parameters:
-- `-Filter <string>`: optional search term that filters results by Name, Deeplink, Number or ShortDescription.
+- `-Filter <string>`: optional search term that filters results by all searchable fields.
 - `-Raw`: return the raw API response.
 
 Examples:
@@ -67,13 +68,26 @@ Retrieves the playlist for a specified SiriusXM channel.
 Parameters:
 - `-Channel <string>`: deeplink name of the channel (e.g., "siriusxmhits1").
 - `-Link <string>`: the site to extract links from (default `youtube`). 
-- `-PageCount <int>`: how many pages to fetch (each page ~24 items).
+- `-Size <int>`: how many items to fetch (default is 24 items).
 - `-Raw`: return the raw API response.
 
 Example:
 
 ```powershell
-Get-XMPlaylist -Channel "siriusxmhits1" -PageCount 2 -Link spotify
+Get-XMPlaylist -Channel "siriusxmhits1" -Size 20 -Link appleMusic
+```
+
+### Show-XMPlaylistPicker
+Shows all stations in an Out-GridView for selection, then retrieves the playlist for the selected station.
+
+Parameters:
+- `-Link <string>`: the site to extract links from (default `youtube`). 
+- `-Size <int>`: how many items to fetch (default is 24 items).
+
+Example:
+
+```powershell
+Show-XMPlaylistPicker -Link youtubeMusic -Size 40
 ```
 
 ----
