@@ -41,3 +41,6 @@
 - Add Size parameter to Get-XMPlaylist
 - Update function Show-XMPlaylistPicker
 - Update README.md
+
+1.4.2
+- Update Get-XMPlaylist -Size parameter validation

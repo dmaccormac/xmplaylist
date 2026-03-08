@@ -97,7 +97,8 @@ function Get-Playlist{
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
     Available sites: amazon, amazonMusic, appleMusic, deezer, itunes, pandora, soundcloud, spotify, tidal, youtube, youtubeMusic, qobuz.  
     .PARAMETER Size
-    The number of tracks to retrieve. Default is 24 (one page).
+    The number of tracks to retrieve. Default is 24 (one page). 
+    Maximum is 100 for channel playlists and 1000 for the default feed. 
     .PARAMETER Raw
     If specified, returns the raw API response without conversion.
     .PARAMETER Filter
@@ -116,7 +117,6 @@ function Get-Playlist{
         [Parameter(Mandatory = $false)]
         [string]$Link = 'youtube',
         [Parameter(Mandatory = $false)]
-        [ValidateRange(1,100)]
         [int]$Size = 24,
         [Parameter(Mandatory = $false)]
         [switch]$Raw = $false,
@@ -139,12 +139,23 @@ function Get-Playlist{
                     return
                 }
             }
-
-
-            $url = "https://xmplaylist.com/api/feed" # Default feed if no channel specified
-            if ($Channel) {
-                $url = "https://xmplaylist.com/api/station/$($Channel.Deeplink)"
+            
+            if ($Channel) { 
+                $url = "https://xmplaylist.com/api/station/$($Channel.Deeplink)"                 
+                $Max = 100
+                
             }
+            else { 
+                $url = "https://xmplaylist.com/api/feed" 
+                $Max = 1000 
+            }
+
+            if ($Size -gt $Max) {
+                Write-Warning "Size parameter exceeds maximum allowed. Only the first $Max tracks will be retrieved."
+                $Size = $Max
+            }         
+
+            
 
             $allResults = @()
 
@@ -310,7 +321,7 @@ function Show-PlaylistPicker {
     )
 
     $Channel = Get-Station | Out-GridView -Title "Select a Channel" -PassThru
-    $Playlist = Get-Playlist -Channel $Channel.Name -Link $Link -Size $Size 
+    $Playlist = Get-Playlist -Channel $Channel.Name -Link $Link -Size $Size
     return $Playlist
 
 }
