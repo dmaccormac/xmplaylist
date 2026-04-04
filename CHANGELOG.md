@@ -44,3 +44,8 @@
 
 1.4.2
 - Update Get-XMPlaylist -Size parameter validation
+
+1.4.3
+- Rename Show-XMPlaylistPicker to Show-XMPlaylistSelection
+- Update Show-XMPlaylistSelection output
+- Add Show-XMPlaylist function

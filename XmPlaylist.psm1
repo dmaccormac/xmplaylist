@@ -1,7 +1,7 @@
 <#
     Module: XmPlaylist
     Description: PowerShell module for accessing xmplaylist.com API
-    Date: 2026.03.1
+    Date: 2026.04.04
     Author: Dan MacCormac <dmaccormac@gmail.com>
     Website: https://github.com/dmaccormac/XmPlaylist
     API Reference: https://xmplaylist.com/api/documentation
@@ -297,18 +297,54 @@ function ConvertFrom-ApiStation {
 
 }
 
-function Show-PlaylistPicker {
+
+function Show-Playlist {
     <#
     .SYNOPSIS
-    Helper function to demonstrate usage of Get-XMStation and Get-XMPlaylist together.
+    Displays the playlist for a specified SiriusXM channel in the console with pagination.
     .DESCRIPTION
-    Shows all stations in an Out-GridView for selection, then retrieves the playlist for the selected station.
+    This function retrieves the playlist for a specified SiriusXM channel using Get-Playlist and displays the formatted playlist items in the console.
+    It supports pagination to load more tracks interactively.
+    .PARAMETER Channel
+    The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1").
+    .EXAMPLE
+    Show-XmPlaylist -Channel "siriusxmhits1"
+    Retrieves and displays the playlist for the "siriusxmhits1" channel, allowing the user to load more tracks interactively.
+    #>
+
+    [cmdletbinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Channel
+    )
+
+    $Station = Get-Station -Filter $Channel -Exact | Select-Object -First 1
+    $url = "https://xmplaylist.com/api/station/$($Station.Deeplink)" 
+
+    while ($url) 
+    {
+        $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
+        $response  | ConvertFrom-ApiPlaylist | Out-Host
+        $url = $response.next
+        
+        Read-Host "Press Enter to load more, or Ctrl+C to exit"
+        Write-Output "`nLoading more tracks...`n"
+
+    }
+}
+
+function Show-PlaylistSelection {
+    <#
+    .SYNOPSIS
+    Shows all stations in a grid view for selection, then retrieves the playlist for the selected station.
+    .DESCRIPTION
+    This function retrieves the list of stations using Get-Station, displays them in an Out-GridView for user selection, and then retrieves and displays the playlist for the selected station.
     .PARAMETER Link
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
     .PARAMETER Size
     The number of tracks to retrieve. Default is 24 (one page).
     .EXAMPLE
-    Show-PlaylistPicker -Link spotify -Size 50
+    Show-XmPlaylistSelection -Link spotify -Size 50
     Displays all stations in a grid view for selection, then retrieves the 50 most recent tracks for the selected station with Spotify links.
     #>
     
@@ -322,8 +358,7 @@ function Show-PlaylistPicker {
 
     $Channel = Get-Station | Out-GridView -Title "Select a Channel" -PassThru
     $Playlist = Get-Playlist -Channel $Channel.Name -Link $Link -Size $Size
-    return $Playlist
-
+    $Playlist | Out-Host
 }
 
-Export-ModuleMember -Function Get-Station, Get-Playlist, Show-PlaylistPicker
+Export-ModuleMember -Function Get-Station, Get-Playlist, Show-Playlist, Show-PlaylistSelection
