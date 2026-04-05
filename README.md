@@ -87,6 +87,7 @@ Get-XMPlaylist -Channel "siriusxmhits1" -Size 20 -Link appleMusic
 
 Parameters:
 - `Channel <String>`: the name/number/deeplink of the SiriusXM channel (e.g., "siriusxmhits1")
+- `-Link <string>`: the site to extract links from (default `youtube`). 
 
 Example:
 
@@ -99,12 +100,11 @@ Shows all stations in an Out-GridView for selection, then retrieves the playlist
 
 Parameters:
 - `-Link <string>`: the site to extract links from (default `youtube`). 
-- `-Size <int>`: how many items to fetch (default is 24 items).
 
 Example:
 
 ```powershell
-Show-XMPlaylistSelection -Link spotify -Size 50
+Show-XMPlaylistSelection -Link spotify
 ```
 
 ----

@@ -49,3 +49,7 @@
 - Rename Show-XMPlaylistPicker to Show-XMPlaylistSelection
 - Update Show-XMPlaylistSelection output
 - Add Show-XMPlaylist function
+
+1.4.4
+- Update Show-XMPlaylist function
+- Update Show-XMPlaylistSelection function

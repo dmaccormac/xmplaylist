@@ -307,6 +307,8 @@ function Show-Playlist {
     It supports pagination to load more tracks interactively.
     .PARAMETER Channel
     The 'deeplink' name of the SiriusXM channel (e.g., "siriusxmhits1").
+    .PARAMETER Link
+    The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
     .EXAMPLE
     Show-XmPlaylist -Channel "siriusxmhits1"
     Retrieves and displays the playlist for the "siriusxmhits1" channel, allowing the user to load more tracks interactively.
@@ -315,7 +317,9 @@ function Show-Playlist {
     [cmdletbinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]$Channel
+        [string]$Channel,
+        [Parameter(Mandatory = $false)]
+        [string]$Link = 'youtube'
     )
 
     $Station = Get-Station -Filter $Channel -Exact | Select-Object -First 1
@@ -324,7 +328,7 @@ function Show-Playlist {
     while ($url) 
     {
         $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-        $response  | ConvertFrom-ApiPlaylist | Out-Host
+        $response  | ConvertFrom-ApiPlaylist -Site $Link | Out-Host
         $url = $response.next
         
         Read-Host "Press Enter to load more, or Ctrl+C to exit"
@@ -341,24 +345,20 @@ function Show-PlaylistSelection {
     This function retrieves the list of stations using Get-Station, displays them in an Out-GridView for user selection, and then retrieves and displays the playlist for the selected station.
     .PARAMETER Link
     The site to extract the link from (e.g., 'youtube', 'spotify'). Default is 'youtube'.
-    .PARAMETER Size
-    The number of tracks to retrieve. Default is 24 (one page).
     .EXAMPLE
-    Show-XmPlaylistSelection -Link spotify -Size 50
+    Show-XmPlaylistSelection -Link spotify
     Displays all stations in a grid view for selection, then retrieves the 50 most recent tracks for the selected station with Spotify links.
     #>
     
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $false)]
-        [string]$Link = 'youtube',
-        [Parameter(Mandatory = $false)]
-        [int]$Size = 24
+        [string]$Link = 'youtube'
     )
 
     $Channel = Get-Station | Out-GridView -Title "Select a Channel" -PassThru
-    $Playlist = Get-Playlist -Channel $Channel.Name -Link $Link -Size $Size
-    $Playlist | Out-Host
+    Show-Playlist -Channel $Channel.Name -Link $Link
+
 }
 
 Export-ModuleMember -Function Get-Station, Get-Playlist, Show-Playlist, Show-PlaylistSelection
