@@ -32,10 +32,9 @@ Example output:
 ```
 CommandType     Name                                               Version    Source
 -----------     ----                                               -------    ------
-Function        Get-XMPlaylist                                     1.4.3      XmPlaylist
-Function        Get-XMStation                                      1.4.3      XmPlaylist
-Function        Show-XMPlaylist                                    1.4.3      XmPlaylist
-Function        Show-XMPlaylistSelection                           1.4.3      XmPlaylist
+Function        Get-XMPlaylist                                     1.4.5      XmPlaylist
+Function        Get-XMStation                                      1.4.5      XmPlaylist
+Function        Show-XMPlaylist                                    1.4.5      XmPlaylist
 ```
 ### Getting help
 
@@ -55,14 +54,11 @@ Parameters:
 Examples:
 
 ```powershell
-# List all stations (converted objects)
-Get-XMStation | Select-Object -First 10
+Get-XMStation # List all stations 
 
-# Filter stations with partial match
-Get-XMStation -Filter rock
+Get-XMStation -Filter rock # Filter stations by keyword
 
-# Get raw API response
-Get-XMStation -Raw
+Get-XMStation -Raw # Get raw API response
 ```
 
 ----
@@ -76,35 +72,38 @@ Parameters:
 - `-Size <int>`: how many items to fetch (default is 24 items).
 - `-Raw`: return the raw API response.
 
-Example:
+Examples:
 
 ```powershell
-Get-XMPlaylist -Channel "siriusxmhits1" -Size 20 -Link appleMusic
+Get-XMPlaylist # retrieves the default feed (all channels)
+
+Get-XMPlaylist 2 # Get one page of tracks for channel 2 (Sirius XM Hits 1)
+
+Get-XMPlaylist -Channel "siriusxmhits1" -Size 20 -Link appleMusic 
+ # Get 20 tracks with Apple Music links from channel Sirius XM Hits 1
+
+Get-Station -Filter jazz | Get-XMPlaylist -Size 10
+# Find all stations with keyword 'jazz' and get a playlist of 10 items for each station
 ```
+
+----
 
 #### Show-XMPlaylist
- Displays the playlist for a specified SiriusXM channel in the console with pagination.
+ Displays the playlist for a specified SiriusXM channel in the console with pagination. 
+ If a channel is not specified, it prompts the user to select a channel from the list.
 
 Parameters:
-- `Channel <String>`: the name/number/deeplink of the SiriusXM channel (e.g., "siriusxmhits1")
+- `-Channel <String>`: the name/number/deeplink of the SiriusXM channel (e.g., "siriusxmhits1").
 - `-Link <string>`: the site to extract links from (default `youtube`). 
 
-Example:
+Examples:
 
 ```powershell
-Show-XMPlaylist 2 #Show playlist for channel 2 (siriusxmhits1)
+Show-XMPlaylist # Prompts the user to select a channel from the list
 ```
 
-#### Show-XMPlaylistSelection
-Shows all stations in an Out-GridView for selection, then retrieves the playlist for the selected station.
-
-Parameters:
-- `-Link <string>`: the site to extract links from (default `youtube`). 
-
-Example:
-
 ```powershell
-Show-XMPlaylistSelection -Link spotify
+Show-XMPlaylist 2 # Show playlist for channel 2 (siriusxmhits1)
 ```
 
 ----

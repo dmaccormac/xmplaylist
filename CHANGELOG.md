@@ -53,3 +53,9 @@
 1.4.4
 - Update Show-XMPlaylist function
 - Update Show-XMPlaylistSelection function
+
+1.4.5
+- Update Show-XMPlaylist function
+    - Merge Show-XMPlaylistSelection function
+    - Add pipeline support for Channel parameter
+
