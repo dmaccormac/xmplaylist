@@ -324,37 +324,37 @@ function Show-Playlist {
     )
 
     
-        if (-not $Channel) {
-            $Channel = Get-Station | Out-GridView -Title "Select a Channel" -PassThru
-            $Channel = $Channel.Number
-            if (-not $Channel) { return }
-        }
+    if (-not $Channel) {
+        $Channel = Get-Station | Out-GridView -Title "Select a Channel" -PassThru
+        $Channel = $Channel.Number
+        if (-not $Channel) { return }
+    }
 
-        if ($Channel -is [string] -or $Channel -is [int]) {
-            $Station = Get-Station -Filter $Channel -Exact | Select-Object -First 1
-            if (-not $Station) {
-                Write-Error "No station found matching '$Channel'. Please check the channel name/number and try again."
-                return
-            }
-        }
-        elseif ($Channel -is [object] -and $Channel.Deeplink) {
-            $Station = $Channel
-        }
-        else {
-            Write-Error "Invalid value for -Channel."
+    if ($Channel -is [string] -or $Channel -is [int]) {
+        $Station = Get-Station -Filter $Channel -Exact | Select-Object -First 1
+        if (-not $Station) {
+            Write-Error "No station found matching '$Channel'. Please check the channel name/number and try again."
             return
         }
+    }
+    elseif ($Channel -is [object] -and $Channel.Deeplink) {
+        $Station = $Channel
+    }
+    else {
+        Write-Error "Invalid value for -Channel."
+        return
+    }
 
-        $url = "https://xmplaylist.com/api/station/$($Station.Deeplink)"
+    $url = "https://xmplaylist.com/api/station/$($Station.Deeplink)"
 
-        while ($url) {
-            $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
-            $response | ConvertFrom-ApiPlaylist -Site $Link | Out-Host
-            $url = $response.next
+    while ($url) {
+        $response = Invoke-RestMethod -Uri $url -Method Get -Headers @{ "User-Agent" = "XmPlaylistModule" }
+        $response | ConvertFrom-ApiPlaylist -Site $Link | Out-Host
+        $url = $response.next
 
-            Read-Host "Press Enter to load more, or Ctrl+C to exit"
-            Write-Output "`nLoading more tracks...`n"
-        }
+        Read-Host "Press Enter to load more, or Ctrl+C to exit"
+        Write-Output "`nLoading more tracks...`n"
+    }
 }
 
 Export-ModuleMember -Function Get-Station, Get-Playlist, Show-Playlist
